@@ -8,7 +8,6 @@ import {
   X,
   Search,
   Loader2,
-  Filter,
 } from 'lucide-react';
 import {
   useExpenses,
@@ -128,8 +127,8 @@ export default function ExpensesPage() {
       setShowForm(false);
       setEditingId(null);
       setFormData(EMPTY_FORM);
-    } catch (err: any) {
-      setFormError(err.message ?? 'Something went wrong');
+    } catch (err: unknown) {
+      setFormError((err as { message?: string }).message ?? 'Something went wrong');
     }
   };
   const handleEdit = (exp: Expense) => {
@@ -436,7 +435,7 @@ export default function ExpensesPage() {
                   style={{
                     ...inputStyle,
                     cursor: 'pointer',
-                    appearance: 'none' as any,
+                    appearance: 'none' as React.CSSProperties['appearance'],
                   }}
                 >
                   {CATEGORIES.map((c) => (

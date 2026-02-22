@@ -10,8 +10,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  RadialBarChart,
-  RadialBar,
 } from 'recharts';
 
 const COLORS = [

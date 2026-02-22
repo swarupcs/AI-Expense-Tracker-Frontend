@@ -37,7 +37,7 @@ export function ChatContainer() {
   }, [messages]);
 
   const addMessage = (msg: Omit<StreamMessage, 'id'>) => {
-    const id = `${Date.now()}-${Math.random()}`;
+    const id = `${threadId}-${messages.length}-${crypto.randomUUID()}`;
     setMessages((prev) => [...prev, { ...msg, id } as StreamMessage]);
   };
 

@@ -58,7 +58,9 @@ export function streamChat(
             try {
               const parsed = JSON.parse(pendingData) as StreamMessageType;
               if (parsed.type) callbacks.onMessage(parsed);
-            } catch {}
+            } catch {
+              void 0;
+            }
             pendingData = '';
           }
         }

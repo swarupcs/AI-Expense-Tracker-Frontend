@@ -58,7 +58,15 @@ function StatCard({
   accent,
   isLoading,
   delay,
-}: any) {
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  sub: React.ReactNode;
+  accent: string;
+  isLoading?: boolean;
+  delay?: string;
+}) {
   return (
     <div
       className='fade-in-up'
