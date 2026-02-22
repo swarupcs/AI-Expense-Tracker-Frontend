@@ -62,24 +62,60 @@ ChatContainer() {
     setMessages([]);
   };
 
-  const handleSubmit = (userInput: string) => {
-    if (!userInput.trim() || isStreaming) return;
-    addMessage({ type: 'user', payload: { text: userInput } });
-    setIsStreaming(true);
+const handleSubmit = (userInput: string) => {
+  if (!userInput.trim() || isStreaming) return;
+  addMessage({ type: 'user', payload: { text: userInput } });
+  setIsStreaming(true);
 
-    cancelRef.current = streamChat(userInput, threadId, {
-      onMessage: (msg) => addMessage(msg as Omit<StreamMessage, 'id'>),
-      onError: (err) => {
-        console.error('Stream error:', err);
-        addMessage({
-          type: 'ai',
-          payload: { text: 'Sorry, something went wrong. Please try again.' },
-        });
-        setIsStreaming(false);
-      },
-      onDone: () => setIsStreaming(false),
-    });
-  };
+  // Track the streaming AI message id
+  let streamingId: string | null = null;
+
+  cancelRef.current = streamChat(userInput, threadId, {
+    onMessage: (msg) => {
+      const streamMsg = msg as Omit<StreamMessage, 'id'>;
+
+      if (streamMsg.type === 'ai') {
+        if (streamingId) {
+          // Append token to existing AI message bubble
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === streamingId && m.type === 'ai'
+                ? {
+                    ...m,
+                    payload: { text: m.payload.text + streamMsg.payload.text },
+                  }
+                : m,
+            ),
+          );
+        } else {
+          // Create first AI message bubble and remember its id
+          streamingId = `${Date.now()}-${Math.random()}`;
+          setMessages((prev) => [
+            ...prev,
+            { ...streamMsg, id: streamingId } as StreamMessage,
+          ]);
+        }
+      } else {
+        // Non-AI messages (tool, toolCall:start, error) get their own bubble
+        streamingId = null; // reset so next AI chunk starts fresh
+        addMessage(streamMsg);
+      }
+    },
+    onError: (err) => {
+      console.error('Stream error:', err);
+      streamingId = null;
+      addMessage({
+        type: 'ai',
+        payload: { text: 'Sorry, something went wrong. Please try again.' },
+      });
+      setIsStreaming(false);
+    },
+    onDone: () => {
+      streamingId = null;
+      setIsStreaming(false);
+    },
+  });
+};
 
   return (
     <TooltipProvider>
