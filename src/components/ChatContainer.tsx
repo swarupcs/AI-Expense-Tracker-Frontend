@@ -14,7 +14,6 @@ import { streamChat, chatApi } from '@/api/chat.api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,14 +39,15 @@ const SUGGESTIONS = [
   { icon: Target, text: 'How can I reduce dining costs?' },
 ];
 
-export function 
-ChatContainer() {
+export function ChatContainer() {
   const threadId = useId();
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const cancelRef = useRef<(() => void) | null>(null);
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -62,65 +62,70 @@ ChatContainer() {
     setMessages([]);
   };
 
-const handleSubmit = (userInput: string) => {
-  if (!userInput.trim() || isStreaming) return;
-  addMessage({ type: 'user', payload: { text: userInput } });
-  setIsStreaming(true);
+  const handleSubmit = (userInput: string) => {
+    if (!userInput.trim() || isStreaming) return;
+    addMessage({ type: 'user', payload: { text: userInput } });
+    setIsStreaming(true);
 
-  // Track the streaming AI message id
-  let streamingId: string | null = null;
+    // Track the current AI message id so we can append to it
+    let currentAiId: string | null = null;
 
-  cancelRef.current = streamChat(userInput, threadId, {
-    onMessage: (msg) => {
-      const streamMsg = msg as Omit<StreamMessage, 'id'>;
-
-      if (streamMsg.type === 'ai') {
-        if (streamingId) {
-          // Append token to existing AI message bubble
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === streamingId && m.type === 'ai'
-                ? {
-                    ...m,
-                    payload: { text: m.payload.text + streamMsg.payload.text },
-                  }
-                : m,
-            ),
-          );
+    cancelRef.current = streamChat(userInput, threadId, {
+      onMessage: (msg) => {
+        if (msg.type === 'ai') {
+          if (currentAiId === null) {
+            // First chunk — create a new AI message
+            const id = `${Date.now()}-${Math.random()}`;
+            currentAiId = id;
+            setMessages((prev) => [
+              ...prev,
+              {
+                id,
+                type: 'ai',
+                payload: { text: msg.payload.text },
+              } as StreamMessage,
+            ]);
+          } else {
+            // Subsequent chunks — append text to the existing AI message
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === currentAiId && m.type === 'ai'
+                  ? {
+                      ...m,
+                      payload: { text: m.payload.text + msg.payload.text },
+                    }
+                  : m,
+              ),
+            );
+          }
         } else {
-          // Create first AI message bubble and remember its id
-          streamingId = `${Date.now()}-${Math.random()}`;
-          setMessages((prev) => [
-            ...prev,
-            { ...streamMsg, id: streamingId } as StreamMessage,
-          ]);
+          // Non-AI messages (tool calls, tool results, errors) always add new entries
+          // Also reset currentAiId so next AI chunk starts fresh
+          currentAiId = null;
+          addMessage(msg as Omit<StreamMessage, 'id'>);
         }
-      } else {
-        // Non-AI messages (tool, toolCall:start, error) get their own bubble
-        streamingId = null; // reset so next AI chunk starts fresh
-        addMessage(streamMsg);
-      }
-    },
-    onError: (err) => {
-      console.error('Stream error:', err);
-      streamingId = null;
-      addMessage({
-        type: 'ai',
-        payload: { text: 'Sorry, something went wrong. Please try again.' },
-      });
-      setIsStreaming(false);
-    },
-    onDone: () => {
-      streamingId = null;
-      setIsStreaming(false);
-    },
-  });
-};
+      },
+      onError: (err) => {
+        console.error('Stream error:', err);
+        addMessage({
+          type: 'ai',
+          payload: { text: 'Sorry, something went wrong. Please try again.' },
+        });
+        setIsStreaming(false);
+      },
+      onDone: () => setIsStreaming(false),
+    });
+  };
 
   return (
     <TooltipProvider>
-      <div className='flex flex-col h-screen bg-[--background]'>
-        {/* Header */}
+      {/* 
+        KEY FIX: Use h-full instead of h-screen so it fills the parent <main> 
+        which already has h-screen. Then overflow-hidden on this container 
+        ensures the inner scroll area is properly constrained.
+      */}
+      <div className='flex flex-col h-full overflow-hidden bg-[--background]'>
+        {/* Header — fixed height, never shrinks */}
         <div className='shrink-0 border-b border-[#1c1c22] bg-[#0a0a0c] px-6 py-4'>
           <div className='max-w-3xl mx-auto flex items-center justify-between'>
             <div className='flex items-center gap-3'>
@@ -204,8 +209,19 @@ const handleSubmit = (userInput: string) => {
           </div>
         </div>
 
-        {/* Messages */}
-        <ScrollArea className='flex-1'>
+        {/* 
+          Messages area — THIS is the scrollable region.
+          
+          The fix: replace <ScrollArea> (shadcn) with a plain <div> using:
+            - flex-1        → takes all remaining vertical space
+            - min-h-0       → CRITICAL: without this, flex children don't shrink 
+                              below their content size, breaking scroll in flex containers
+            - overflow-y-auto → native browser scroll, reliable and smooth
+        */}
+        <div
+          ref={scrollContainerRef}
+          className='flex-1 min-h-0 overflow-y-auto'
+        >
           <div className='max-w-3xl mx-auto'>
             {messages.length === 0 ? (
               <div className='flex flex-col items-center justify-center min-h-[70vh] px-6 py-12'>
@@ -255,13 +271,15 @@ const handleSubmit = (userInput: string) => {
                     </div>
                   </div>
                 )}
-                <div ref={messageEndRef} />
+                {/* Scroll anchor */}
+                <div ref={messageEndRef} className='h-4' />
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <Separator className='bg-[#1c1c22]' />
+        {/* Footer — fixed height, never shrinks */}
+        <Separator className='bg-[#1c1c22] shrink-0' />
         <ChatInput onSubmit={handleSubmit} disabled={isStreaming} />
       </div>
     </TooltipProvider>

@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const now = new Date();
 const CURRENT_MONTH_FROM = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -85,7 +84,7 @@ export default function Dashboard() {
   }));
 
   return (
-    <div className='flex flex-col h-full bg-[--background]'>
+    <div className='flex flex-col h-full overflow-hidden bg-[--background]'>
       {/* Header */}
       <div className='shrink-0 border-b border-[#1c1c22] bg-[#0a0a0c] px-8 py-6'>
         <div className='flex items-center justify-between'>
@@ -112,7 +111,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <ScrollArea className='flex-1'>
+      {/* Scrollable content */}
+      <div className='flex-1 min-h-0 overflow-y-auto'>
         <div className='px-8 py-6 space-y-6'>
           {/* Stat cards */}
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
@@ -209,7 +209,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
