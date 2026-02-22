@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   User,
-  Zap,
+  Cpu,
   AlertTriangle,
   Wrench,
   ChevronDown,
@@ -21,44 +21,29 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import type { StreamMessage } from '@/types/StreamMessage.types';
 
-interface ChatMessageProps {
-  message: StreamMessage;
-}
-
-// ─── Category colors ──────────────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, string> = {
-  DINING: '#ec4899',
-  SHOPPING: '#a855f7',
-  TRANSPORT: '#06b6d4',
-  ENTERTAINMENT: '#f59e0b',
-  UTILITIES: '#22c55e',
-  HEALTH: '#f43f5e',
-  EDUCATION: '#3b82f6',
-  OTHER: '#6b7280',
+  DINING: '#ff2d78',
+  SHOPPING: '#9d7fff',
+  TRANSPORT: '#00d4ff',
+  ENTERTAINMENT: '#ffb830',
+  UTILITIES: '#00ff87',
+  HEALTH: '#ff6b9d',
+  EDUCATION: '#5b8fff',
+  OTHER: '#4a4870',
 };
-const CHART_PALETTE = [
-  '#d4ff4f',
-  '#a855f7',
-  '#06b6d4',
-  '#f59e0b',
-  '#22c55e',
-  '#f43f5e',
-  '#3b82f6',
-  '#6b7280',
+const PALETTE = [
+  '#7c5cfc',
+  '#00d4ff',
+  '#00ff87',
+  '#ffb830',
+  '#ff2d78',
+  '#9d7fff',
+  '#5b8fff',
+  '#4a4870',
 ];
 
-// ─── Chart detection from tool result ────────────────────────────────────────
 type ChartShape =
   | { kind: 'bar'; data: { label: string; amount: number; color?: string }[] }
   | { kind: 'pie'; data: { name: string; value: number; color: string }[] }
@@ -66,219 +51,179 @@ type ChartShape =
   | null;
 
 function detectChart(result: Record<string, unknown>): ChartShape {
-  // --- byCategory array (stats result) → Bar + Pie
   if (Array.isArray(result.byCategory) && result.byCategory.length > 0) {
     const cats = result.byCategory as Array<{
       category: string;
       amount: number;
-      count?: number;
     }>;
     return {
       kind: 'bar',
       data: cats.map((c) => ({
         label: c.category,
         amount: Math.round(c.amount),
-        color: CATEGORY_COLORS[c.category] ?? '#d4ff4f',
+        color: CATEGORY_COLORS[c.category] ?? '#7c5cfc',
       })),
     };
   }
-
-  // --- expenses array → bar chart by date or category
   if (Array.isArray(result.expenses) && result.expenses.length > 0) {
-    const exps = result.expenses as Array<{
-      date: string;
-      amount: number;
-      category?: string;
-    }>;
-
-    // Group by month for line chart if spanning > 1 month
+    const exps = result.expenses as Array<{ date: string; amount: number }>;
     const monthSet = new Set(exps.map((e) => e.date.slice(0, 7)));
     if (monthSet.size > 1) {
       const monthMap: Record<string, number> = {};
       for (const e of exps) {
-        const key = e.date.slice(0, 7);
-        monthMap[key] = (monthMap[key] ?? 0) + e.amount;
+        const k = e.date.slice(0, 7);
+        monthMap[k] = (monthMap[k] ?? 0) + e.amount;
       }
-      const lineData = Object.entries(monthMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([month, amount]) => ({
-          month: new Date(month + '-01').toLocaleString('en', {
-            month: 'short',
-          }),
-          amount: Math.round(amount),
-        }));
-      return { kind: 'line', data: lineData };
+      return {
+        kind: 'line',
+        data: Object.entries(monthMap)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([m, a]) => ({
+            month: new Date(m + '-01').toLocaleString('en', { month: 'short' }),
+            amount: Math.round(a),
+          })),
+      };
     }
-
-    // Single month → bar chart by date
     const dateMap: Record<string, number> = {};
     for (const e of exps) {
-      const key = e.date.slice(5); // MM-DD
-      dateMap[key] = (dateMap[key] ?? 0) + e.amount;
+      const k = e.date.slice(5);
+      dateMap[k] = (dateMap[k] ?? 0) + e.amount;
     }
     return {
       kind: 'bar',
       data: Object.entries(dateMap)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([label, amount]) => ({ label, amount, color: '#d4ff4f' })),
+        .map(([l, a]) => ({ label: l, amount: a, color: '#7c5cfc' })),
     };
   }
-
-  // --- data array with amount/total + label/category/month
   if (Array.isArray(result.data) && result.data.length > 0) {
     const rows = result.data as Array<Record<string, unknown>>;
-    const labelKey = ['label', 'category', 'month', 'date', 'name'].find(
+    const lk = ['label', 'category', 'month', 'date', 'name'].find(
       (k) => k in rows[0],
     );
-    const valueKey = ['amount', 'total', 'value', 'count'].find(
-      (k) => k in rows[0],
-    );
-    if (labelKey && valueKey) {
+    const vk = ['amount', 'total', 'value', 'count'].find((k) => k in rows[0]);
+    if (lk && vk)
       return {
         kind: 'bar',
         data: rows.map((r, i) => ({
-          label: String(r[labelKey]),
-          amount: Math.round(Number(r[valueKey])),
-          color:
-            CATEGORY_COLORS[String(r[labelKey])] ??
-            CHART_PALETTE[i % CHART_PALETTE.length],
+          label: String(r[lk]),
+          amount: Math.round(Number(r[vk])),
+          color: CATEGORY_COLORS[String(r[lk])] ?? PALETTE[i % PALETTE.length],
         })),
       };
-    }
   }
-
   return null;
 }
 
-// ─── Custom tooltip ───────────────────────────────────────────────────────────
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <Card className='border-[#1c1c22] bg-[#111114] shadow-xl p-0'>
-      <CardContent className='px-4 py-3'>
-        <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest mb-1'>
-          {label}
-        </p>
-        <p className='text-base font-bold text-[--foreground]'>
-          Rs.{Number(payload[0].value).toLocaleString('en-IN')}
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Rendered chart component ─────────────────────────────────────────────────
 function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
+  const tooltipStyle = {
+    contentStyle: {
+      background: '#0d0d1a',
+      border: '1px solid rgba(124,92,252,0.2)',
+      borderRadius: '10px',
+      fontFamily: '"JetBrains Mono", monospace',
+      fontSize: '12px',
+      color: '#f0efff',
+    },
+    cursor: { fill: 'rgba(124,92,252,0.05)' },
+  };
+
   if (chart.kind === 'bar') {
-    const maxAmt = Math.max(...chart.data.map((d) => d.amount));
+    const max = Math.max(...chart.data.map((d) => d.amount));
     return (
-      <div className='mt-3 space-y-2'>
-        <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
+      <div style={{ marginTop: '16px' }}>
+        <div
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '10px',
+            color: '#4a4870',
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            marginBottom: '12px',
+          }}
+        >
           Spending Chart
-        </p>
-        <ResponsiveContainer width='100%' height={200}>
+        </div>
+        <ResponsiveContainer width='100%' height={180}>
           <BarChart
             data={chart.data}
-            margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
+            margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
             barCategoryGap='28%'
           >
             <CartesianGrid
               strokeDasharray='3 3'
-              stroke='#1c1c22'
+              stroke='rgba(124,92,252,0.08)'
               vertical={false}
             />
             <XAxis
               dataKey='label'
-              stroke='#3a3a46'
-              tick={{ fontSize: 10, fill: '#5c5c6e', fontFamily: 'monospace' }}
+              tick={{
+                fontSize: 10,
+                fill: '#4a4870',
+                fontFamily: '"JetBrains Mono", monospace',
+              }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              stroke='#3a3a46'
-              tick={{ fontSize: 10, fill: '#5c5c6e', fontFamily: 'monospace' }}
+              tick={{
+                fontSize: 10,
+                fill: '#4a4870',
+                fontFamily: '"JetBrains Mono", monospace',
+              }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) =>
                 v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
               }
             />
-            <Tooltip
-              content={<ChartTooltip />}
-              cursor={{ fill: '#ffffff05' }}
-            />
-            <Bar dataKey='amount' radius={[6, 6, 0, 0]} maxBarSize={48}>
-              {chart.data.map((entry, i) => (
+            <Tooltip {...tooltipStyle} />
+            <Bar dataKey='amount' radius={[6, 6, 0, 0]} maxBarSize={40}>
+              {chart.data.map((d, i) => (
                 <Cell
                   key={i}
-                  fill={entry.color ?? '#d4ff4f'}
-                  opacity={
-                    entry.amount === maxAmt
-                      ? 1
-                      : 0.5 + (entry.amount / maxAmt) * 0.4
-                  }
+                  fill={d.color ?? '#7c5cfc'}
+                  opacity={d.amount === max ? 1 : 0.5 + (d.amount / max) * 0.4}
                 />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className='flex flex-wrap gap-1.5 pt-1'>
-          {chart.data.map((d) => (
-            <Badge
-              key={d.label}
-              variant='outline'
-              className='border-[#1c1c22] bg-[#111114] text-[--foreground-secondary] font-mono text-[10px] gap-1.5'
-            >
-              <span
-                className='w-1.5 h-1.5 rounded-full shrink-0'
-                style={{ backgroundColor: d.color ?? '#d4ff4f' }}
-              />
-              {d.label}
-            </Badge>
-          ))}
-        </div>
       </div>
     );
   }
 
   if (chart.kind === 'pie') {
     return (
-      <div className='mt-3 space-y-2'>
-        <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
+      <div style={{ marginTop: '16px' }}>
+        <div
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '10px',
+            color: '#4a4870',
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            marginBottom: '12px',
+          }}
+        >
           Category Breakdown
-        </p>
-        <ResponsiveContainer width='100%' height={200}>
+        </div>
+        <ResponsiveContainer width='100%' height={180}>
           <PieChart>
             <Pie
               data={chart.data}
               cx='50%'
               cy='50%'
-              outerRadius={80}
+              innerRadius={45}
+              outerRadius={75}
               dataKey='value'
-              label={({ name, value }) => `${name} Rs.${value}`}
-              labelLine={{ stroke: '#2a2a32' }}
+              paddingAngle={2}
             >
-              {chart.data.map((entry, i) => (
-                <Cell key={i} fill={entry.color} />
+              {chart.data.map((e, i) => (
+                <Cell key={i} fill={e.color} />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#111114',
-                border: '1px solid #1c1c22',
-                borderRadius: '8px',
-                fontSize: '12px',
-              }}
-              itemStyle={{ color: '#f0eee8' }}
-            />
+            <Tooltip {...tooltipStyle} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -287,34 +232,47 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
 
   if (chart.kind === 'line') {
     return (
-      <div className='mt-3 space-y-2'>
-        <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
+      <div style={{ marginTop: '16px' }}>
+        <div
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '10px',
+            color: '#4a4870',
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            marginBottom: '12px',
+          }}
+        >
           Monthly Trend
-        </p>
-        <ResponsiveContainer width='100%' height={200}>
+        </div>
+        <ResponsiveContainer width='100%' height={180}>
           <LineChart
             data={chart.data}
-            margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
+            margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray='3 3' stroke='#1c1c22' />
-            <XAxis dataKey='month' stroke='#5c5c6e' tick={{ fontSize: 10 }} />
-            <YAxis stroke='#5c5c6e' tick={{ fontSize: 10 }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#111114',
-                border: '1px solid #1c1c22',
-                borderRadius: '8px',
-                fontSize: '12px',
-              }}
-              itemStyle={{ color: '#d4ff4f' }}
+            <CartesianGrid
+              strokeDasharray='3 3'
+              stroke='rgba(124,92,252,0.08)'
             />
+            <XAxis
+              dataKey='month'
+              tick={{ fontSize: 10, fill: '#4a4870' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: '#4a4870' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip {...tooltipStyle} />
             <Line
               type='monotone'
               dataKey='amount'
-              stroke='#d4ff4f'
-              strokeWidth={2}
-              dot={{ fill: '#d4ff4f', r: 3 }}
-              activeDot={{ r: 5 }}
+              stroke='#7c5cfc'
+              strokeWidth={2.5}
+              dot={{ fill: '#7c5cfc', r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: '#9d7fff' }}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -325,7 +283,6 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
   return null;
 }
 
-// ─── Tool call block (collapsible, amber) ─────────────────────────────────────
 function ToolCallBlock({
   name,
   args,
@@ -334,48 +291,99 @@ function ToolCallBlock({
   args?: Record<string, unknown>;
 }) {
   const [open, setOpen] = useState(false);
-
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <div className='rounded-lg border border-[#1c1c22] bg-[#0d0d10] overflow-hidden'>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant='ghost'
-            className='w-full flex items-center justify-start gap-2.5 px-3 py-2 h-auto rounded-none hover:bg-[#111114] text-left'
-          >
-            <Wrench className='h-3 w-3 text-amber-400 shrink-0' />
-            <Badge
-              variant='outline'
-              className='border-amber-900/40 bg-amber-950/20 text-amber-400 font-mono text-[10px] px-1.5 py-0'
-            >
-              tool
-            </Badge>
-            <span className='text-xs font-mono text-amber-400 flex-1 truncate'>
-              {name}
-            </span>
-            {open ? (
-              <ChevronDown className='h-3 w-3 text-[--foreground-secondary] shrink-0' />
-            ) : (
-              <ChevronRight className='h-3 w-3 text-[--foreground-secondary] shrink-0' />
-            )}
-          </Button>
-        </CollapsibleTrigger>
-        {args && (
-          <CollapsibleContent>
-            <ScrollArea className='max-h-48'>
-              <pre className='px-3 pb-3 pt-1 text-[11px] font-mono text-[--foreground-secondary] leading-relaxed'>
-                {JSON.stringify(args, null, 2)}
-              </pre>
-              <ScrollBar orientation='horizontal' />
-            </ScrollArea>
-          </CollapsibleContent>
+    <div
+      style={{
+        borderRadius: '12px',
+        border: '1px solid rgba(255,184,48,0.2)',
+        background: 'rgba(255,184,48,0.04)',
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '10px 14px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <Wrench
+          style={{
+            width: '13px',
+            height: '13px',
+            color: '#ffb830',
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '10px',
+            color: '#ffb830',
+            background: 'rgba(255,184,48,0.1)',
+            border: '1px solid rgba(255,184,48,0.2)',
+            padding: '1px 7px',
+            borderRadius: '4px',
+          }}
+        >
+          tool
+        </span>
+        <span
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '12px',
+            color: '#ffb830',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {name}
+        </span>
+        {open ? (
+          <ChevronDown
+            style={{ width: '12px', height: '12px', color: '#4a4870' }}
+          />
+        ) : (
+          <ChevronRight
+            style={{ width: '12px', height: '12px', color: '#4a4870' }}
+          />
         )}
-      </div>
-    </Collapsible>
+      </button>
+      {open && args && (
+        <div
+          style={{
+            borderTop: '1px solid rgba(255,184,48,0.1)',
+            maxHeight: '180px',
+            overflowY: 'auto',
+          }}
+        >
+          <pre
+            style={{
+              padding: '10px 14px',
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '11px',
+              color: 'rgba(255,184,48,0.6)',
+              margin: 0,
+              lineHeight: 1.6,
+            }}
+          >
+            {JSON.stringify(args, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
   );
 }
 
-// ─── Tool result block — auto-renders charts when detected ────────────────────
 function ToolResultBlock({
   name,
   result,
@@ -385,47 +393,108 @@ function ToolResultBlock({
 }) {
   const [open, setOpen] = useState(false);
   const chart = detectChart(result);
-
   return (
-    <div className='space-y-2'>
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <div className='rounded-lg border border-green-900/30 bg-green-950/10 overflow-hidden'>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant='ghost'
-              className='w-full flex items-center justify-start gap-2.5 px-3 py-2 h-auto rounded-none hover:bg-green-950/20 text-left'
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div
+        style={{
+          borderRadius: '12px',
+          border: '1px solid rgba(0,255,135,0.15)',
+          background: 'rgba(0,255,135,0.04)',
+          overflow: 'hidden',
+        }}
+      >
+        <button
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 14px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <div
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: '#00ff87',
+              boxShadow: '0 0 5px #00ff87',
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '10px',
+              color: '#00ff87',
+              background: 'rgba(0,255,135,0.1)',
+              border: '1px solid rgba(0,255,135,0.2)',
+              padding: '1px 7px',
+              borderRadius: '4px',
+            }}
+          >
+            result
+          </span>
+          <span
+            style={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '12px',
+              color: '#00ff87',
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {name}
+          </span>
+          {open ? (
+            <ChevronDown
+              style={{ width: '12px', height: '12px', color: '#4a4870' }}
+            />
+          ) : (
+            <ChevronRight
+              style={{ width: '12px', height: '12px', color: '#4a4870' }}
+            />
+          )}
+        </button>
+        {open && (
+          <div
+            style={{
+              borderTop: '1px solid rgba(0,255,135,0.1)',
+              maxHeight: '180px',
+              overflowY: 'auto',
+            }}
+          >
+            <pre
+              style={{
+                padding: '10px 14px',
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: '11px',
+                color: 'rgba(0,255,135,0.55)',
+                margin: 0,
+                lineHeight: 1.6,
+              }}
             >
-              <span className='w-1.5 h-1.5 rounded-full bg-green-400 shrink-0' />
-              <Badge
-                variant='outline'
-                className='border-green-900/40 bg-green-950/20 text-green-400 font-mono text-[10px] px-1.5 py-0'
-              >
-                result
-              </Badge>
-              <span className='text-xs font-mono text-green-400 flex-1 truncate'>
-                {name}
-              </span>
-              {open ? (
-                <ChevronDown className='h-3 w-3 text-green-400/50 shrink-0' />
-              ) : (
-                <ChevronRight className='h-3 w-3 text-green-400/50 shrink-0' />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <ScrollArea className='max-h-48'>
-              <pre className='px-3 pb-3 pt-1 text-[11px] font-mono text-green-400/70 leading-relaxed'>
-                {JSON.stringify(result, null, 2)}
-              </pre>
-              <ScrollBar orientation='horizontal' />
-            </ScrollArea>
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
-
-      {/* Auto-render chart if data is chart-compatible */}
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
       {chart && (
-        <div className='rounded-lg border border-[#1c1c22] bg-[#0d0d10] px-4 pb-4 pt-2'>
+        <div
+          style={{
+            background: 'rgba(13,13,26,0.8)',
+            border: '1px solid rgba(124,92,252,0.12)',
+            borderRadius: '14px',
+            padding: '16px 18px',
+          }}
+        >
           <RenderedChart chart={chart} />
         </div>
       )}
@@ -433,89 +502,163 @@ function ToolResultBlock({
   );
 }
 
-// ─── Inline markdown renderer ─────────────────────────────────────────────────
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (part.startsWith('**') && part.endsWith('**'))
       return (
-        <strong key={i} className='font-semibold text-[--foreground]'>
+        <strong key={i} style={{ fontWeight: 600, color: '#f0efff' }}>
           {part.slice(2, -2)}
         </strong>
       );
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
+    if (part.startsWith('`') && part.endsWith('`'))
       return (
         <code
           key={i}
-          className='px-1.5 py-0.5 rounded bg-[#1a1a1f] text-[--primary] text-[11px] font-mono'
+          style={{
+            padding: '2px 7px',
+            borderRadius: '5px',
+            background: 'rgba(124,92,252,0.12)',
+            color: '#9d7fff',
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '12px',
+          }}
         >
           {part.slice(1, -1)}
         </code>
       );
-    }
     return part;
   });
 }
 
-// ─── AI text content with light markdown ─────────────────────────────────────
 function AiTextContent({ text }: { text: string }) {
   const lines = text.split('\n');
-
   return (
-    <div className='text-sm text-[--foreground] leading-relaxed space-y-1.5'>
+    <div
+      style={{
+        color: '#d4d2f0',
+        fontSize: '15px',
+        lineHeight: 1.75,
+        fontFamily: '"DM Sans", sans-serif',
+      }}
+    >
       {lines.map((line, i) => {
-        if (line.startsWith('### ')) {
+        if (line.startsWith('### '))
           return (
             <h3
               key={i}
-              className='font-semibold text-[--foreground] text-sm mt-3 mb-0.5'
+              style={{
+                fontFamily: '"Syne", sans-serif',
+                fontWeight: 700,
+                fontSize: '15px',
+                color: '#f0efff',
+                margin: '16px 0 4px',
+              }}
             >
               {line.slice(4)}
             </h3>
           );
-        }
-        if (line.startsWith('## ')) {
+        if (line.startsWith('## '))
           return (
             <h2
               key={i}
-              className='font-bold text-[--foreground] text-base mt-4 mb-1'
+              style={{
+                fontFamily: '"Syne", sans-serif',
+                fontWeight: 800,
+                fontSize: '17px',
+                color: '#f0efff',
+                margin: '20px 0 6px',
+              }}
             >
               {line.slice(3)}
             </h2>
           );
-        }
-        if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (line.startsWith('- ') || line.startsWith('• '))
           return (
-            <div key={i} className='flex gap-2 items-start'>
-              <span className='text-[--primary] mt-[5px] text-[8px] shrink-0'>
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'flex-start',
+                margin: '4px 0',
+              }}
+            >
+              <span
+                style={{
+                  color: '#7c5cfc',
+                  marginTop: '8px',
+                  fontSize: '6px',
+                  flexShrink: 0,
+                }}
+              >
                 ◆
               </span>
               <span>{renderInline(line.slice(2))}</span>
             </div>
           );
-        }
-        if (line.trim() === '') return <div key={i} className='h-1' />;
-        return <p key={i}>{renderInline(line)}</p>;
+        if (line.trim() === '')
+          return <div key={i} style={{ height: '6px' }} />;
+        return (
+          <p key={i} style={{ margin: '2px 0' }}>
+            {renderInline(line)}
+          </p>
+        );
       })}
     </div>
   );
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message }: { message: StreamMessage }) {
   if (message.type === 'user') {
     return (
-      <div className='flex gap-4 py-5 px-6 justify-end'>
-        <div className='max-w-[75%]'>
-          <div className='bg-[--primary] rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm'>
-            <p className='text-sm text-[--primary-foreground] leading-relaxed'>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '12px',
+          padding: '16px 24px',
+          alignItems: 'flex-end',
+        }}
+      >
+        <div style={{ maxWidth: '72%' }}>
+          <div
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(124,92,252,0.25), rgba(0,212,255,0.15))',
+              border: '1px solid rgba(124,92,252,0.3)',
+              borderRadius: '16px 16px 4px 16px',
+              padding: '12px 18px',
+              boxShadow: '0 4px 20px rgba(124,92,252,0.1)',
+            }}
+          >
+            <p
+              style={{
+                color: '#f0efff',
+                fontSize: '15px',
+                lineHeight: 1.65,
+                fontFamily: '"DM Sans", sans-serif',
+                margin: 0,
+              }}
+            >
               {message.payload.text}
             </p>
           </div>
         </div>
-        <div className='shrink-0 w-7 h-7 rounded-lg bg-[#1c1c22] border border-[#2a2a32] flex items-center justify-center mt-0.5'>
-          <User className='h-3.5 w-3.5 text-[--foreground-secondary]' />
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: 'rgba(124,92,252,0.12)',
+            border: '1px solid rgba(124,92,252,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <User style={{ width: '14px', height: '14px', color: '#8b89b0' }} />
         </div>
       </div>
     );
@@ -523,11 +666,23 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   if (message.type === 'toolCall:start') {
     return (
-      <div className='flex gap-4 py-3 px-6'>
-        <div className='shrink-0 w-7 h-7 rounded-lg bg-amber-950/20 border border-amber-900/20 flex items-center justify-center mt-0.5'>
-          <Wrench className='h-3.5 w-3.5 text-amber-400' />
+      <div style={{ display: 'flex', gap: '12px', padding: '10px 24px' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: 'rgba(255,184,48,0.1)',
+            border: '1px solid rgba(255,184,48,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Wrench style={{ width: '13px', height: '13px', color: '#ffb830' }} />
         </div>
-        <div className='flex-1 pt-0.5'>
+        <div style={{ flex: 1, paddingTop: '4px' }}>
           <ToolCallBlock
             name={message.payload.name}
             args={message.payload.args}
@@ -539,11 +694,31 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   if (message.type === 'tool') {
     return (
-      <div className='flex gap-4 py-3 px-6'>
-        <div className='shrink-0 w-7 h-7 rounded-lg bg-green-950/20 border border-green-900/20 flex items-center justify-center mt-0.5'>
-          <Zap className='h-3.5 w-3.5 text-green-400' />
+      <div style={{ display: 'flex', gap: '12px', padding: '10px 24px' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: 'rgba(0,255,135,0.08)',
+            border: '1px solid rgba(0,255,135,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#00ff87',
+              boxShadow: '0 0 6px #00ff87',
+            }}
+          />
         </div>
-        <div className='flex-1 pt-0.5'>
+        <div style={{ flex: 1, paddingTop: '4px' }}>
           <ToolResultBlock
             name={message.payload.name}
             result={message.payload.result}
@@ -555,13 +730,42 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   if (message.type === 'error') {
     return (
-      <div className='flex gap-4 py-5 px-6'>
-        <div className='shrink-0 w-7 h-7 rounded-lg bg-red-950/30 border border-red-900/30 flex items-center justify-center mt-0.5'>
-          <AlertTriangle className='h-3.5 w-3.5 text-red-400' />
+      <div style={{ display: 'flex', gap: '12px', padding: '16px 24px' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: 'rgba(255,59,92,0.1)',
+            border: '1px solid rgba(255,59,92,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <AlertTriangle
+            style={{ width: '13px', height: '13px', color: '#ff3b5c' }}
+          />
         </div>
-        <div className='flex-1 pt-1'>
-          <div className='bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-3'>
-            <p className='text-sm text-red-400 leading-relaxed'>
+        <div style={{ flex: 1, paddingTop: '4px' }}>
+          <div
+            style={{
+              background: 'rgba(255,59,92,0.07)',
+              border: '1px solid rgba(255,59,92,0.2)',
+              borderRadius: '14px',
+              padding: '12px 16px',
+            }}
+          >
+            <p
+              style={{
+                color: '#ff3b5c',
+                fontSize: '14px',
+                lineHeight: 1.6,
+                fontFamily: '"DM Sans", sans-serif',
+                margin: 0,
+              }}
+            >
               {message.payload.text}
             </p>
           </div>
@@ -572,13 +776,24 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   if (message.type === 'ai') {
     return (
-      <div className='flex gap-4 py-5 px-6'>
-        <div className='shrink-0 w-7 h-7 rounded-lg bg-[--primary] flex items-center justify-center mt-0.5'>
-          <span className='text-[10px] font-mono font-bold text-[--primary-foreground]'>
-            AI
-          </span>
+      <div style={{ display: 'flex', gap: '12px', padding: '20px 24px' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background:
+              'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
+            border: '1px solid rgba(124,92,252,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Cpu style={{ width: '14px', height: '14px', color: '#9d7fff' }} />
         </div>
-        <div className='flex-1 pt-0.5 min-w-0'>
+        <div style={{ flex: 1, minWidth: 0, paddingTop: '4px' }}>
           <AiTextContent text={message.payload.text} />
         </div>
       </div>

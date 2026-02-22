@@ -1,8 +1,6 @@
-// ─── Authenticated HTTP Client ────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4100/api';
 export { BASE_URL };
 
-// ─── Token storage ────────────────────────────────────────────────────────────
 export const tokenStorage = {
   getAccess: (): string | null => localStorage.getItem('accessToken'),
   getRefresh: (): string | null => localStorage.getItem('refreshToken'),
@@ -16,7 +14,6 @@ export const tokenStorage = {
   },
 };
 
-// ─── Silent refresh ───────────────────────────────────────────────────────────
 let refreshPromise: Promise<boolean> | null = null;
 
 async function doRefresh(): Promise<boolean> {
@@ -42,7 +39,6 @@ async function doRefresh(): Promise<boolean> {
   }
 }
 
-// ─── Core request ─────────────────────────────────────────────────────────────
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;

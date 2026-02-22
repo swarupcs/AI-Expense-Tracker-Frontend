@@ -5,12 +5,10 @@ export interface SignUpInput {
   email: string;
   password: string;
 }
-
 export interface SignInInput {
   email: string;
   password: string;
 }
-
 export interface ChangePasswordInput {
   currentPassword: string;
   newPassword: string;
@@ -33,7 +31,6 @@ export interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }
-
 export interface AuthResult {
   user: PublicUser;
   tokens: TokenPair;
@@ -45,21 +42,17 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-
   signIn: (data: SignInInput) =>
     request<AuthResult>('/auth/signin', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-
   signOut: (refreshToken: string) =>
     request<void>('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     }),
-
   getMe: () => request<PublicUser>('/auth/me'),
-
   changePassword: (data: ChangePasswordInput) =>
     request<void>('/auth/change-password', {
       method: 'PATCH',

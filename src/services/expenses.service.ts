@@ -6,7 +6,6 @@ import {
   type ExpenseFilters,
 } from '@/api/expenses.api';
 
-// ─── Query Keys ───────────────────────────────────────────────────────────────
 export const expenseKeys = {
   all: ['expenses'] as const,
   lists: () => [...expenseKeys.all, 'list'] as const,
@@ -16,7 +15,6 @@ export const expenseKeys = {
   detail: (id: number) => [...expenseKeys.all, id] as const,
 };
 
-// ─── List Expenses ────────────────────────────────────────────────────────────
 export function useExpenses(filters?: ExpenseFilters) {
   return useQuery({
     queryKey: expenseKeys.list(filters ?? {}),
@@ -30,7 +28,6 @@ export function useExpenses(filters?: ExpenseFilters) {
   });
 }
 
-// ─── Expense Stats ────────────────────────────────────────────────────────────
 export function useExpenseStats(from?: string, to?: string) {
   return useQuery({
     queryKey: expenseKeys.stats(from, to),
@@ -43,7 +40,6 @@ export function useExpenseStats(from?: string, to?: string) {
   });
 }
 
-// ─── Single Expense ───────────────────────────────────────────────────────────
 export function useExpense(id: number) {
   return useQuery({
     queryKey: expenseKeys.detail(id),
@@ -55,7 +51,6 @@ export function useExpense(id: number) {
   });
 }
 
-// ─── Create Expense ───────────────────────────────────────────────────────────
 export function useCreateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -71,7 +66,6 @@ export function useCreateExpense() {
   });
 }
 
-// ─── Update Expense ───────────────────────────────────────────────────────────
 export function useUpdateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -94,7 +88,6 @@ export function useUpdateExpense() {
   });
 }
 
-// ─── Delete Expense ───────────────────────────────────────────────────────────
 export function useDeleteExpense() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -109,7 +102,6 @@ export function useDeleteExpense() {
   });
 }
 
-// ─── Bulk Delete ──────────────────────────────────────────────────────────────
 export function useBulkDeleteExpenses() {
   const queryClient = useQueryClient();
   return useMutation({

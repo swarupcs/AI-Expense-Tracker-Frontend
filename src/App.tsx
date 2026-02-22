@@ -18,18 +18,46 @@ const queryClient = new QueryClient({
 
 function AppShell() {
   return (
-    <div className='flex h-screen font-sans antialiased overflow-hidden'>
+    <div
+      style={{
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        background: '#080810',
+      }}
+    >
       <Sidebar />
-      <main className='flex-1 overflow-hidden'>
-        <Routes>
-          <Route path='/' element={<Dashboard />} />
-          <Route path='/chat' element={<ChatPage />} />
-          <Route path='/expenses' element={<ExpensesPage />} />
-          <Route path='/insights' element={<InsightsPage />} />
-          <Route path='/settings' element={<SettingsPage />} />
-          <Route path='*' element={<Navigate to='/' replace />} />
-        </Routes>
+      <main style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+        {/* Subtle grid overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'linear-gradient(rgba(124,92,252,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(124,92,252,0.025) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+        <div style={{ position: 'relative', zIndex: 1, height: '100%' }}>
+          <Routes>
+            <Route path='/' element={<Dashboard />} />
+            <Route path='/chat' element={<ChatPage />} />
+            <Route path='/expenses' element={<ExpensesPage />} />
+            <Route path='/insights' element={<InsightsPage />} />
+            <Route path='/settings' element={<SettingsPage />} />
+            <Route path='*' element={<Navigate to='/' replace />} />
+          </Routes>
+        </div>
       </main>
+
+      <style>{`
+          5%   { opacity: 1; }
+          95%  { opacity: 1; }
+          100% { transform: translateY(100vh); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

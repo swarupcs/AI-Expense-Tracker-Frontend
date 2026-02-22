@@ -29,7 +29,6 @@ export function streamChat(
   callbacks: ChatStreamCallbacks,
 ): () => void {
   let isCancelled = false;
-
   (async () => {
     try {
       const token = tokenStorage.getAccess();
@@ -41,21 +40,16 @@ export function streamChat(
         },
         body: JSON.stringify({ query, threadId }),
       });
-
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-
       while (!isCancelled) {
         const { value, done } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
-
         let pendingData = '';
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -64,24 +58,19 @@ export function streamChat(
             try {
               const parsed = JSON.parse(pendingData) as StreamMessageType;
               if (parsed.type) callbacks.onMessage(parsed);
-            } catch {
-              /* skip malformed */
-            }
+            } catch {}
             pendingData = '';
           }
         }
       }
-
       callbacks.onDone?.();
     } catch (err) {
-      if (!isCancelled) {
+      if (!isCancelled)
         callbacks.onError?.(
           err instanceof Error ? err : new Error(String(err)),
         );
-      }
     }
   })();
-
   return () => {
     isCancelled = true;
   };
@@ -100,7 +89,6 @@ export const chatApi = {
       },
     }).then((r) => r.json());
   },
-
   deleteHistory: (threadId?: string) => {
     const token = tokenStorage.getAccess();
     const params = new URLSearchParams();

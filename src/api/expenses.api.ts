@@ -68,7 +68,6 @@ export const expensesApi = {
     const qs = params.toString();
     return request<Expense[]>(`/expenses${qs ? `?${qs}` : ''}`);
   },
-
   stats: (from?: string, to?: string) => {
     const params = new URLSearchParams();
     if (from) params.set('from', from);
@@ -76,24 +75,19 @@ export const expensesApi = {
     const qs = params.toString();
     return request<ExpenseStats>(`/expenses/stats${qs ? `?${qs}` : ''}`);
   },
-
   get: (id: number) => request<Expense>(`/expenses/${id}`),
-
   create: (data: CreateExpenseInput) =>
     request<Expense>('/expenses', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-
   update: (id: number, data: UpdateExpenseInput) =>
     request<Expense>(`/expenses/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
-
   delete: (id: number) =>
     request<void>(`/expenses/${id}`, { method: 'DELETE' }),
-
   bulkDelete: (ids: number[]) =>
     request<{ count: number }>('/expenses', {
       method: 'DELETE',

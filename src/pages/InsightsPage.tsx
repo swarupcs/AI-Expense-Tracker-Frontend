@@ -10,35 +10,20 @@ import {
   PieChart,
   Pie,
   Cell,
+  RadialBarChart,
+  RadialBar,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
 const COLORS = [
-  '#d4ff4f',
-  '#a855f7',
-  '#06b6d4',
-  '#f59e0b',
-  '#22c55e',
-  '#6b7280',
-  '#ec4899',
-  '#3b82f6',
+  '#7c5cfc',
+  '#00d4ff',
+  '#00ff87',
+  '#ffb830',
+  '#ff2d78',
+  '#9d7fff',
+  '#5b8fff',
+  '#4a4870',
 ];
-
-const TOOLTIP_STYLE = {
-  contentStyle: {
-    backgroundColor: '#111114',
-    border: '1px solid #1c1c22',
-    borderRadius: '8px',
-    fontSize: '12px',
-  },
-  labelStyle: { color: '#f0eee8' },
-  itemStyle: { color: '#d4ff4f' },
-};
 
 export default function InsightsPage() {
   const now = new Date();
@@ -73,213 +58,532 @@ export default function InsightsPage() {
       month: new Date(month + '-01').toLocaleString('en', { month: 'short' }),
       amount: Math.round(amount),
     }));
+
   const pieData = (stats?.byCategory ?? []).map((c, i) => ({
     name: c.category,
     value: Math.round(c.amount),
     color: COLORS[i % COLORS.length],
   }));
 
+  const tooltipStyle = {
+    contentStyle: {
+      background: '#0d0d1a',
+      border: '1px solid rgba(124,92,252,0.2)',
+      borderRadius: '10px',
+      fontFamily: '"JetBrains Mono", monospace',
+      fontSize: '12px',
+      color: '#f0efff',
+    },
+  };
+
   const summaryCards = [
     {
       label: 'Total Spent',
-      value: `Rs.${Math.round(stats?.total ?? 0).toLocaleString('en-IN')}`,
+      value: `₹${Math.round(stats?.total ?? 0).toLocaleString('en-IN')}`,
       sub: '6 months',
+      color: '#7c5cfc',
+      glow: 'rgba(124,92,252,0.3)',
     },
     {
       label: 'Transactions',
       value: String(stats?.count ?? '—'),
       sub: 'Total count',
+      color: '#00d4ff',
+      glow: 'rgba(0,212,255,0.25)',
     },
     {
       label: 'Avg Transaction',
-      value: `Rs.${Math.round(stats?.average ?? 0).toLocaleString('en-IN')}`,
+      value: `₹${Math.round(stats?.average ?? 0).toLocaleString('en-IN')}`,
       sub: 'Per expense',
+      color: '#00ff87',
+      glow: 'rgba(0,255,135,0.25)',
     },
     {
       label: 'Top Category',
       value: stats?.byCategory[0]?.category ?? '—',
-      sub: `Rs.${Math.round(stats?.byCategory[0]?.amount ?? 0).toLocaleString('en-IN')}`,
+      sub: `₹${Math.round(stats?.byCategory[0]?.amount ?? 0).toLocaleString('en-IN')}`,
+      color: '#ffb830',
+      glow: 'rgba(255,184,48,0.25)',
     },
   ];
 
   return (
-    <div className='flex flex-col h-full bg-[--background]'>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+        background: '#080810',
+      }}
+    >
       {/* Header */}
-      <div className='shrink-0 border-b border-[#1c1c22] bg-[#0a0a0c] px-8 py-6'>
-        <h1 className='font-display text-2xl font-bold text-[--foreground]'>
+      <div
+        style={{
+          borderBottom: '1px solid rgba(124,92,252,0.1)',
+          background: 'rgba(8,8,16,0.95)',
+          padding: '24px 32px',
+          flexShrink: 0,
+          backdropFilter: 'blur(20px)',
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: '"Syne", sans-serif',
+            fontSize: '26px',
+            fontWeight: 800,
+            color: '#f0efff',
+            letterSpacing: '-0.5px',
+            margin: 0,
+            marginBottom: '4px',
+          }}
+        >
           Insights
         </h1>
-        <p className='text-sm text-[--foreground-secondary] mt-0.5 font-mono'>
+        <p
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '11px',
+            color: '#4a4870',
+            margin: 0,
+          }}
+        >
           AI-powered spending analysis · Last 6 months
         </p>
       </div>
 
-      <ScrollArea className='flex-1'>
-        <div className='px-8 py-6 space-y-6'>
-          {/* Summary stat cards */}
-          <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-            {summaryCards.map((card) => (
-              <Card key={card.label} className='bg-[#0f0f12] border-[#1c1c22]'>
-                <CardContent className='p-5'>
-                  <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
-                    {card.label}
-                  </p>
-                  {isLoading ? (
-                    <Skeleton className='h-8 w-28 mt-2 bg-[#1a1a1f]' />
-                  ) : (
-                    <p className='text-2xl font-display font-bold text-[--foreground] mt-2'>
-                      {card.value}
-                    </p>
-                  )}
-                  <p className='text-xs text-[--foreground-secondary] mt-1'>
-                    {card.sub}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          padding: '28px 32px',
+        }}
+      >
+        {/* Summary cards */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '14px',
+            marginBottom: '24px',
+          }}
+        >
+          {summaryCards.map((card) => (
+            <div
+              key={card.label}
+              style={{
+                background: 'rgba(13,13,26,0.7)',
+                border: `1px solid ${card.color}20`,
+                borderRadius: '14px',
+                padding: '20px',
+                backdropFilter: 'blur(20px)',
+                transition: 'all 0.2s',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  `${card.color}40`;
+                (e.currentTarget as HTMLElement).style.boxShadow =
+                  `0 0 25px ${card.glow}`;
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  `${card.color}20`;
+                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-20px',
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${card.glow}, transparent 70%)`,
+                  pointerEvents: 'none',
+                }}
+              />
+              <p
+                style={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  color: '#4a4870',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  margin: '0 0 10px',
+                }}
+              >
+                {card.label}
+              </p>
+              {isLoading ? (
+                <div
+                  style={{
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(124,92,252,0.08)',
+                    marginBottom: '8px',
+                  }}
+                  className='shimmer'
+                />
+              ) : (
+                <p
+                  style={{
+                    fontFamily: '"Syne", sans-serif',
+                    fontSize: '24px',
+                    fontWeight: 800,
+                    color: card.color,
+                    letterSpacing: '-0.5px',
+                    margin: '0 0 6px',
+                    textShadow: `0 0 20px ${card.glow}`,
+                  }}
+                >
+                  {card.value}
+                </p>
+              )}
+              <p
+                style={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  color: '#4a4870',
+                  margin: 0,
+                }}
+              >
+                {card.sub}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '16px',
+            marginBottom: '20px',
+          }}
+        >
+          {/* Line chart */}
+          <div
+            style={{
+              background: 'rgba(13,13,26,0.7)',
+              border: '1px solid rgba(124,92,252,0.12)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(20px)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '20px',
+              }}
+            >
+              <div
+                style={{
+                  width: '3px',
+                  height: '18px',
+                  borderRadius: '2px',
+                  background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#f0efff',
+                }}
+              >
+                Monthly Trend
+              </span>
+            </div>
+            {isLoading ? (
+              <div
+                style={{
+                  height: '220px',
+                  borderRadius: '10px',
+                  background: 'rgba(124,92,252,0.05)',
+                }}
+                className='shimmer'
+              />
+            ) : (
+              <ResponsiveContainer width='100%' height={220}>
+                <LineChart
+                  data={trendData}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id='lineGrad' x1='0' y1='0' x2='0' y2='1'>
+                      <stop offset='0%' stopColor='#7c5cfc' stopOpacity={0.3} />
+                      <stop offset='100%' stopColor='#7c5cfc' stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray='3 3'
+                    stroke='rgba(124,92,252,0.08)'
+                  />
+                  <XAxis
+                    dataKey='month'
+                    tick={{
+                      fontSize: 11,
+                      fill: '#4a4870',
+                      fontFamily: '"JetBrains Mono", monospace',
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 11,
+                      fill: '#4a4870',
+                      fontFamily: '"JetBrains Mono", monospace',
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip {...tooltipStyle} />
+                  <Line
+                    type='monotone'
+                    dataKey='amount'
+                    stroke='#7c5cfc'
+                    strokeWidth={2.5}
+                    dot={{
+                      fill: '#7c5cfc',
+                      r: 4,
+                      strokeWidth: 2,
+                      stroke: '#080810',
+                    }}
+                    activeDot={{ r: 6, fill: '#9d7fff', strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
-          {/* Charts */}
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-            {/* Line chart */}
-            <Card className='bg-[#0f0f12] border-[#1c1c22]'>
-              <CardHeader className='pb-2'>
-                <CardTitle className='text-sm font-mono text-[--foreground-secondary] uppercase tracking-widest font-normal'>
-                  Monthly Trend
-                </CardTitle>
-              </CardHeader>
-              <Separator className='bg-[#1c1c22]' />
-              <CardContent className='pt-5'>
-                {isLoading ? (
-                  <Skeleton className='h-64 w-full bg-[#1a1a1f]' />
-                ) : (
-                  <ResponsiveContainer width='100%' height={260}>
-                    <LineChart data={trendData}>
-                      <CartesianGrid strokeDasharray='3 3' stroke='#1c1c22' />
-                      <XAxis
-                        dataKey='month'
-                        stroke='#5c5c6e'
-                        tick={{ fontSize: 11 }}
-                      />
-                      <YAxis stroke='#5c5c6e' tick={{ fontSize: 11 }} />
-                      <Tooltip {...TOOLTIP_STYLE} />
-                      <Line
-                        type='monotone'
-                        dataKey='amount'
-                        stroke='#d4ff4f'
-                        strokeWidth={2}
-                        dot={{ fill: '#d4ff4f', r: 3 }}
-                        activeDot={{ r: 5 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+          {/* Pie chart */}
+          <div
+            style={{
+              background: 'rgba(13,13,26,0.7)',
+              border: '1px solid rgba(124,92,252,0.12)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(20px)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '20px',
+              }}
+            >
+              <div
+                style={{
+                  width: '3px',
+                  height: '18px',
+                  borderRadius: '2px',
+                  background: 'linear-gradient(180deg, #ff2d78, #ffb830)',
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#f0efff',
+                }}
+              >
+                By Category
+              </span>
+            </div>
+            {isLoading ? (
+              <div
+                style={{
+                  height: '220px',
+                  borderRadius: '10px',
+                  background: 'rgba(124,92,252,0.05)',
+                }}
+                className='shimmer'
+              />
+            ) : pieData.length > 0 ? (
+              <ResponsiveContainer width='100%' height={220}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx='50%'
+                    cy='50%'
+                    innerRadius={60}
+                    outerRadius={90}
+                    dataKey='value'
+                    paddingAngle={2}
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip {...tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div
+                style={{
+                  height: '220px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#4a4870',
+                  fontSize: '14px',
+                  fontFamily: '"DM Sans", sans-serif',
+                }}
+              >
+                No data yet
+              </div>
+            )}
+          </div>
+        </div>
 
-            {/* Pie chart */}
-            <Card className='bg-[#0f0f12] border-[#1c1c22]'>
-              <CardHeader className='pb-2'>
-                <CardTitle className='text-sm font-mono text-[--foreground-secondary] uppercase tracking-widest font-normal'>
-                  By Category
-                </CardTitle>
-              </CardHeader>
-              <Separator className='bg-[#1c1c22]' />
-              <CardContent className='pt-5'>
-                {isLoading ? (
-                  <Skeleton className='h-64 w-full bg-[#1a1a1f]' />
-                ) : pieData.length > 0 ? (
-                  <ResponsiveContainer width='100%' height={260}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx='50%'
-                        cy='50%'
-                        outerRadius={90}
-                        dataKey='value'
-                        label={({ name, value }) => `${name} Rs.${value}`}
-                        labelLine={{ stroke: '#2a2a32' }}
-                      >
-                        {pieData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={TOOLTIP_STYLE.contentStyle}
-                        itemStyle={{ color: '#f0eee8' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className='flex flex-col items-center justify-center h-64 gap-2'>
-                    <p className='text-[--foreground-secondary] text-sm'>
-                      No data yet
-                    </p>
-                    <Badge
-                      variant='outline'
-                      className='border-[#1c1c22] text-[--foreground-secondary] font-mono text-[10px]'
+        {/* Category breakdown */}
+        {stats && stats.byCategory.length > 0 && (
+          <div
+            style={{
+              background: 'rgba(13,13,26,0.7)',
+              border: '1px solid rgba(124,92,252,0.12)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(20px)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '20px',
+              }}
+            >
+              <div
+                style={{
+                  width: '3px',
+                  height: '18px',
+                  borderRadius: '2px',
+                  background: 'linear-gradient(180deg, #00ff87, #00d4ff)',
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#f0efff',
+                }}
+              >
+                Category Breakdown
+              </span>
+            </div>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+            >
+              {stats.byCategory.map((cat, i) => {
+                const pct =
+                  stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
+                const color = COLORS[i % COLORS.length];
+                return (
+                  <div key={cat.category}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px',
+                      }}
                     >
-                      Add expenses to see breakdown
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Category breakdown with progress bars */}
-          {stats && stats.byCategory.length > 0 && (
-            <Card className='bg-[#0f0f12] border-[#1c1c22]'>
-              <CardHeader className='pb-2'>
-                <CardTitle className='text-sm font-mono text-[--foreground-secondary] uppercase tracking-widest font-normal'>
-                  Category Breakdown
-                </CardTitle>
-              </CardHeader>
-              <Separator className='bg-[#1c1c22]' />
-              <CardContent className='pt-5 space-y-4'>
-                {stats.byCategory.map((cat, i) => {
-                  const pct =
-                    stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
-                  const color = COLORS[i % COLORS.length];
-                  return (
-                    <div key={cat.category} className='space-y-1.5'>
-                      <div className='flex justify-between items-center'>
-                        <div className='flex items-center gap-2'>
-                          <span
-                            className='w-2 h-2 rounded-full shrink-0'
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className='text-sm text-[--foreground]'>
-                            {cat.category}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <Badge
-                            variant='outline'
-                            className='border-[#1c1c22] bg-[#111114] text-[--foreground-secondary] font-mono text-[10px]'
-                          >
-                            {Math.round(pct)}%
-                          </Badge>
-                          <span className='text-sm font-mono text-[--foreground-secondary]'>
-                            Rs.{Math.round(cat.amount).toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      </div>
-                      {/* shadcn Progress — override the indicator color via inline style trick */}
-                      <div className='w-full bg-[#1a1a1f] rounded-full h-1.5 overflow-hidden'>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                        }}
+                      >
                         <div
-                          className='h-1.5 rounded-full transition-all duration-500'
-                          style={{ width: `${pct}%`, backgroundColor: color }}
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '2px',
+                            background: color,
+                            boxShadow: `0 0 8px ${color}70`,
+                          }}
                         />
+                        <span
+                          style={{
+                            fontFamily: '"DM Sans", sans-serif',
+                            fontSize: '14px',
+                            color: '#d4d2f0',
+                          }}
+                        >
+                          {cat.category}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '11px',
+                            color: '#4a4870',
+                          }}
+                        >
+                          {Math.round(pct)}%
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: '"Syne", sans-serif',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color,
+                          }}
+                        >
+                          ₹{Math.round(cat.amount).toLocaleString('en-IN')}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </ScrollArea>
+                    <div
+                      style={{
+                        height: '4px',
+                        borderRadius: '2px',
+                        background: 'rgba(124,92,252,0.08)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          borderRadius: '2px',
+                          width: `${pct}%`,
+                          background: `linear-gradient(90deg, ${color}, ${color}90)`,
+                          boxShadow: `0 0 8px ${color}50`,
+                          transition: 'width 0.8s ease-out',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

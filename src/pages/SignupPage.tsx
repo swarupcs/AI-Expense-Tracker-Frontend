@@ -1,31 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Eye,
-  EyeOff,
-  Zap,
-  ArrowRight,
-  Loader2,
-  Check,
-  Circle,
-} from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Loader2, Zap, Check } from 'lucide-react';
 import { useSignUp } from '@/services/auth.service';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 
 const PASSWORD_RULES = [
-  { label: '8+ characters', test: (p: string) => p.length >= 8 },
+  { label: '8+ chars', test: (p: string) => p.length >= 8 },
   { label: 'Uppercase', test: (p: string) => /[A-Z]/.test(p) },
   { label: 'Lowercase', test: (p: string) => /[a-z]/.test(p) },
   { label: 'Number', test: (p: string) => /[0-9]/.test(p) },
@@ -34,220 +13,453 @@ const PASSWORD_RULES = [
 export default function SignupPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
   const { mutate: signUp, isPending, error } = useSignUp();
 
   const set =
     (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    signUp(form);
-  };
+      setForm((p) => ({ ...p, [field]: e.target.value }));
 
   const passwordStrength = PASSWORD_RULES.filter((r) =>
     r.test(form.password),
   ).length;
+  const strengthColors = ['', '#ff3b5c', '#ffb830', '#84cc16', '#00ff87'];
+  const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+  const inputStyle = (name: string): React.CSSProperties => ({
+    width: '100%',
+    padding: '13px 16px',
+    background:
+      focused === name ? 'rgba(124,92,252,0.07)' : 'rgba(13,13,26,0.8)',
+    border: `1px solid ${focused === name ? 'rgba(124,92,252,0.5)' : 'rgba(124,92,252,0.12)'}`,
+    borderRadius: '10px',
+    color: '#f0efff',
+    fontFamily: '"DM Sans", sans-serif',
+    fontSize: '15px',
+    outline: 'none',
+    transition: 'all 0.2s',
+    boxShadow: focused === name ? '0 0 0 3px rgba(124,92,252,0.1)' : 'none',
+  });
 
   return (
-    <div className='min-h-screen bg-[#09090b] flex items-center justify-center p-4'>
-      {/* Grid background */}
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#080810',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       <div
-        className='fixed inset-0 opacity-[0.03] pointer-events-none'
         style={{
+          position: 'absolute',
+          top: '-20%',
+          right: '-10%',
+          width: '500px',
+          height: '500px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(0,212,255,0.07) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '-20%',
+          left: '-10%',
+          width: '600px',
+          height: '600px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(124,92,252,0.07) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
+            'linear-gradient(rgba(124,92,252,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(124,92,252,0.03) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+          pointerEvents: 'none',
         }}
       />
 
-      <div className='w-full max-w-sm relative'>
+      <div style={{ width: '100%', maxWidth: '420px', position: 'relative' }}>
         {/* Logo */}
-        <div className='flex items-center gap-3 mb-10'>
-          <div className='w-10 h-10 rounded-xl bg-[--primary] flex items-center justify-center shadow-lg shrink-0'>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            marginBottom: '40px',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 30px rgba(124,92,252,0.5)',
+            }}
+          >
             <Zap
-              className='w-5 h-5 text-[--primary-foreground]'
+              style={{ width: '22px', height: '22px', color: '#fff' }}
               strokeWidth={2.5}
             />
           </div>
           <div>
-            <h1 className='font-display text-lg font-bold text-[--foreground] tracking-tight'>
+            <div
+              style={{
+                fontFamily: '"Syne", sans-serif',
+                fontSize: '22px',
+                fontWeight: 800,
+                color: '#f0efff',
+                letterSpacing: '-0.5px',
+              }}
+            >
               ExpenseAI
-            </h1>
-            <p className='text-[10px] text-[--foreground-secondary] font-mono uppercase tracking-widest'>
+            </div>
+            <div
+              style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: '10px',
+                color: '#4a4870',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+              }}
+            >
               Smart Tracking
-            </p>
+            </div>
           </div>
         </div>
 
-        {/* Card */}
-        <Card className='bg-[#111114] border-[#1c1c22] rounded-2xl shadow-2xl'>
-          <CardHeader className='pb-2 px-8 pt-8'>
-            <CardTitle className='text-xl font-display font-bold text-[--foreground]'>
-              Create account
-            </CardTitle>
-            <CardDescription className='text-sm text-[--foreground-secondary]'>
-              Start tracking your expenses with AI
-            </CardDescription>
-          </CardHeader>
+        <div
+          style={{
+            background: 'rgba(13,13,26,0.85)',
+            border: '1px solid rgba(124,92,252,0.15)',
+            borderRadius: '20px',
+            padding: '40px',
+            backdropFilter: 'blur(30px)',
+            boxShadow:
+              '0 0 80px rgba(124,92,252,0.05), 0 20px 60px rgba(0,0,0,0.5)',
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: '"Syne", sans-serif',
+              fontSize: '26px',
+              fontWeight: 800,
+              color: '#f0efff',
+              marginBottom: '6px',
+              letterSpacing: '-0.5px',
+            }}
+          >
+            Create account
+          </h2>
+          <p
+            style={{ color: '#4a4870', fontSize: '14px', marginBottom: '28px' }}
+          >
+            Start tracking your expenses with AI
+          </p>
+          <div
+            style={{
+              height: '1px',
+              background:
+                'linear-gradient(90deg, transparent, rgba(124,92,252,0.3), transparent)',
+              marginBottom: '24px',
+            }}
+          />
 
-          <Separator className='bg-[#1c1c22] mt-4' />
+          {error && (
+            <div
+              style={{
+                padding: '12px 16px',
+                background: 'rgba(255,59,92,0.08)',
+                border: '1px solid rgba(255,59,92,0.2)',
+                borderRadius: '10px',
+                color: '#ff3b5c',
+                fontSize: '13px',
+                marginBottom: '18px',
+              }}
+            >
+              {error.message}
+            </div>
+          )}
 
-          <CardContent className='px-8 pt-6 pb-8'>
-            {error && (
-              <Alert className='mb-5 border-red-900/40 bg-red-950/40'>
-                <AlertDescription className='text-red-400 text-sm'>
-                  {error.message}
-                </AlertDescription>
-              </Alert>
-            )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              signUp(form);
+            }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
+          >
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  color: '#8b89b0',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  marginBottom: '8px',
+                }}
+              >
+                Full Name
+              </label>
+              <input
+                type='text'
+                value={form.name}
+                onChange={set('name')}
+                placeholder='John Doe'
+                required
+                onFocus={() => setFocused('name')}
+                onBlur={() => setFocused(null)}
+                style={inputStyle('name')}
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className='space-y-4'>
-              {/* Full Name */}
-              <div className='space-y-2'>
-                <Label className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
-                  Full Name
-                </Label>
-                <Input
-                  type='text'
-                  autoComplete='name'
-                  value={form.name}
-                  onChange={set('name')}
-                  placeholder='John Doe'
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  color: '#8b89b0',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  marginBottom: '8px',
+                }}
+              >
+                Email Address
+              </label>
+              <input
+                type='email'
+                value={form.email}
+                onChange={set('email')}
+                placeholder='you@example.com'
+                required
+                onFocus={() => setFocused('email')}
+                onBlur={() => setFocused(null)}
+                style={inputStyle('email')}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  color: '#8b89b0',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  marginBottom: '8px',
+                }}
+              >
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={set('password')}
+                  placeholder='••••••••'
                   required
-                  className='bg-[#0a0a0c] border-[#1c1c22] text-[--foreground] placeholder:text-[--foreground-secondary]/50 focus-visible:ring-[--primary]/30 focus-visible:border-[--primary]/50'
+                  onFocus={() => setFocused('password')}
+                  onBlur={() => setFocused(null)}
+                  style={{ ...inputStyle('password'), paddingRight: '48px' }}
                 />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword((v) => !v)}
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#4a4870',
+                    cursor: 'pointer',
+                    padding: '4px',
+                  }}
+                >
+                  {showPassword ? (
+                    <EyeOff style={{ width: '16px', height: '16px' }} />
+                  ) : (
+                    <Eye style={{ width: '16px', height: '16px' }} />
+                  )}
+                </button>
               </div>
 
-              {/* Email */}
-              <div className='space-y-2'>
-                <Label className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
-                  Email
-                </Label>
-                <Input
-                  type='email'
-                  autoComplete='email'
-                  value={form.email}
-                  onChange={set('email')}
-                  placeholder='you@example.com'
-                  required
-                  className='bg-[#0a0a0c] border-[#1c1c22] text-[--foreground] placeholder:text-[--foreground-secondary]/50 focus-visible:ring-[--primary]/30 focus-visible:border-[--primary]/50'
-                />
-              </div>
-
-              {/* Password */}
-              <div className='space-y-2'>
-                <Label className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
-                  Password
-                </Label>
-                <div className='relative'>
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete='new-password'
-                    value={form.password}
-                    onChange={set('password')}
-                    placeholder='••••••••'
-                    required
-                    className='bg-[#0a0a0c] border-[#1c1c22] text-[--foreground] placeholder:text-[--foreground-secondary]/50 focus-visible:ring-[--primary]/30 focus-visible:border-[--primary]/50 pr-10'
-                  />
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => setShowPassword((v) => !v)}
-                    className='absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-[--foreground-secondary] hover:text-[--foreground] hover:bg-transparent'
+              {form.password.length > 0 && (
+                <div style={{ marginTop: '12px' }}>
+                  {/* Strength bar */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '4px',
+                      marginBottom: '10px',
+                    }}
                   >
-                    {showPassword ? (
-                      <EyeOff className='h-4 w-4' />
-                    ) : (
-                      <Eye className='h-4 w-4' />
-                    )}
-                  </Button>
-                </div>
-
-                {/* Password strength rules */}
-                {form.password.length > 0 && (
-                  <div className='space-y-2 pt-1'>
-                    {/* Strength bar */}
-                    <div className='flex gap-1'>
-                      {[1, 2, 3, 4].map((step) => (
-                        <div
-                          key={step}
-                          className='h-1 flex-1 rounded-full transition-all duration-300'
-                          style={{
-                            backgroundColor:
-                              passwordStrength >= step
-                                ? passwordStrength === 1
-                                  ? '#ef4444'
-                                  : passwordStrength === 2
-                                    ? '#f59e0b'
-                                    : passwordStrength === 3
-                                      ? '#84cc16'
-                                      : '#22c55e'
-                                : '#1c1c22',
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Rule badges */}
-                    <div className='flex flex-wrap gap-1.5'>
-                      {PASSWORD_RULES.map((rule) => {
-                        const ok = rule.test(form.password);
-                        return (
-                          <Badge
-                            key={rule.label}
-                            variant='outline'
-                            className={[
-                              'text-[10px] font-mono gap-1 px-1.5 py-0.5 transition-colors',
-                              ok
-                                ? 'border-green-900/40 bg-green-950/20 text-green-400'
-                                : 'border-[#1c1c22] bg-[#0a0a0c] text-[--foreground-secondary]',
-                            ].join(' ')}
-                          >
-                            {ok ? (
-                              <Check className='h-2.5 w-2.5' />
-                            ) : (
-                              <Circle className='h-2.5 w-2.5' />
-                            )}
-                            {rule.label}
-                          </Badge>
-                        );
-                      })}
-                    </div>
+                    {[1, 2, 3, 4].map((step) => (
+                      <div
+                        key={step}
+                        style={{
+                          height: '3px',
+                          flex: 1,
+                          borderRadius: '2px',
+                          background:
+                            passwordStrength >= step
+                              ? strengthColors[passwordStrength]
+                              : 'rgba(124,92,252,0.1)',
+                          transition: 'background 0.3s',
+                          boxShadow:
+                            passwordStrength >= step
+                              ? `0 0 6px ${strengthColors[passwordStrength]}60`
+                              : 'none',
+                        }}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
+                  {/* Strength label */}
+                  {passwordStrength > 0 && (
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        color: strengthColors[passwordStrength],
+                        fontFamily: '"JetBrains Mono", monospace',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      {strengthLabels[passwordStrength]}
+                    </div>
+                  )}
+                  {/* Rules */}
+                  <div
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}
+                  >
+                    {PASSWORD_RULES.map((rule) => {
+                      const ok = rule.test(form.password);
+                      return (
+                        <div
+                          key={rule.label}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 10px',
+                            borderRadius: '20px',
+                            border: `1px solid ${ok ? 'rgba(0,255,135,0.3)' : 'rgba(124,92,252,0.12)'}`,
+                            background: ok
+                              ? 'rgba(0,255,135,0.07)'
+                              : 'transparent',
+                            fontSize: '10px',
+                            fontFamily: '"JetBrains Mono", monospace',
+                            color: ok ? '#00ff87' : '#4a4870',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <Check
+                            style={{
+                              width: '9px',
+                              height: '9px',
+                              opacity: ok ? 1 : 0.3,
+                            }}
+                          />
+                          {rule.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
-              {/* Submit */}
-              <Button
-                type='submit'
-                disabled={isPending}
-                className='w-full gap-2 bg-[--primary] text-[--primary-foreground] hover:bg-[--primary]/90 disabled:opacity-50 disabled:cursor-not-allowed mt-2 h-10'
-              >
-                {isPending ? (
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                ) : (
-                  <>
-                    Create Account
-                    <ArrowRight className='h-4 w-4' />
-                  </>
-                )}
-              </Button>
-            </form>
+            <button
+              type='submit'
+              disabled={isPending}
+              style={{
+                width: '100%',
+                padding: '15px',
+                background: isPending
+                  ? 'rgba(124,92,252,0.4)'
+                  : 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+                border: 'none',
+                borderRadius: '12px',
+                color: '#fff',
+                fontFamily: '"Syne", sans-serif',
+                fontWeight: 700,
+                fontSize: '15px',
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '4px',
+                boxShadow: isPending
+                  ? 'none'
+                  : '0 0 30px rgba(124,92,252,0.35)',
+                transition: 'all 0.2s',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {isPending ? (
+                <>
+                  <Loader2
+                    style={{
+                      width: '17px',
+                      height: '17px',
+                      animation: 'spin 1s linear infinite',
+                    }}
+                  />{' '}
+                  Creating…
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight style={{ width: '17px', height: '17px' }} />
+                </>
+              )}
+            </button>
+          </form>
 
-            <p className='text-center text-sm text-[--foreground-secondary] mt-6'>
-              Already have an account?{' '}
-              <Link
-                to='/login'
-                className='text-[--primary] hover:underline font-medium transition-colors'
-              >
-                Sign in
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: '14px',
+              color: '#4a4870',
+              marginTop: '24px',
+            }}
+          >
+            Already have an account?{' '}
+            <Link
+              to='/login'
+              style={{
+                color: '#9d7fff',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
+      <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
     </div>
   );
 }

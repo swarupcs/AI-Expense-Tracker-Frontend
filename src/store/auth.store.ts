@@ -7,7 +7,6 @@ interface AuthState {
   user: PublicUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  // Actions
   login: (user: PublicUser, accessToken: string, refreshToken: string) => void;
   logout: () => Promise<void>;
   setUser: (user: PublicUser) => void;
@@ -20,12 +19,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
-
       login: (user, accessToken, refreshToken) => {
         tokenStorage.set(accessToken, refreshToken);
         set({ user, isAuthenticated: true });
       },
-
       logout: async () => {
         const refreshToken = tokenStorage.getRefresh();
         if (refreshToken) {
@@ -34,13 +31,10 @@ export const useAuthStore = create<AuthState>()(
         tokenStorage.clear();
         set({ user: null, isAuthenticated: false });
       },
-
       setUser: (user) => set({ user }),
-
       hydrate: async () => {
         const token = tokenStorage.getAccess();
         if (!token || get().isAuthenticated) return;
-
         set({ isLoading: true });
         try {
           const res = await authApi.getMe();

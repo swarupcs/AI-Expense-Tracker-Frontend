@@ -8,12 +8,8 @@ import {
 } from '@/api/auth.api';
 import { useAuthStore } from '@/store/auth.store';
 
-// ─── Query Keys ───────────────────────────────────────────────────────────────
-export const authKeys = {
-  me: ['auth', 'me'] as const,
-};
+export const authKeys = { me: ['auth', 'me'] as const };
 
-// ─── Get current user ─────────────────────────────────────────────────────────
 export function useMe() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
@@ -29,11 +25,9 @@ export function useMe() {
   });
 }
 
-// ─── Sign Up ──────────────────────────────────────────────────────────────────
 export function useSignUp() {
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
-
   return useMutation({
     mutationFn: async (data: SignUpInput) => {
       const res = await authApi.signUp(data);
@@ -48,11 +42,9 @@ export function useSignUp() {
   });
 }
 
-// ─── Sign In ──────────────────────────────────────────────────────────────────
 export function useSignIn() {
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
-
   return useMutation({
     mutationFn: async (data: SignInInput) => {
       const res = await authApi.signIn(data);
@@ -67,12 +59,10 @@ export function useSignIn() {
   });
 }
 
-// ─── Sign Out ─────────────────────────────────────────────────────────────────
 export function useSignOut() {
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-
   return useMutation({
     mutationFn: async () => {
       await logout();
@@ -84,7 +74,6 @@ export function useSignOut() {
   });
 }
 
-// ─── Change Password ──────────────────────────────────────────────────────────
 export function useChangePassword() {
   return useMutation({
     mutationFn: async (data: ChangePasswordInput) => {

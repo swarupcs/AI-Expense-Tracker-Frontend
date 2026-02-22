@@ -1,13 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { ArrowUp, Mic } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface ChatInputProps {
   onSubmit: (value: string) => void;
@@ -16,14 +8,14 @@ interface ChatInputProps {
 
 export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [value, setValue] = useState('');
+  const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea height
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [value]);
 
   const handleSubmit = () => {
@@ -44,85 +36,134 @@ export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const canSubmit = value.trim().length > 0 && !disabled;
 
   return (
-    <TooltipProvider>
-      <div className='shrink-0 border-t border-[#1c1c22] bg-[#0a0a0c] px-4 py-4'>
-        <div className='max-w-3xl mx-auto'>
-          <div
-            className={[
-              'flex items-end gap-2 rounded-2xl border bg-[#111114] transition-all duration-200',
+    <div style={{ padding: '16px 24px 20px' }}>
+      <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: '10px',
+            background: focused
+              ? 'rgba(124,92,252,0.06)'
+              : 'rgba(13,13,26,0.8)',
+            border: `1px solid ${focused ? 'rgba(124,92,252,0.4)' : 'rgba(124,92,252,0.15)'}`,
+            borderRadius: '16px',
+            padding: '8px 8px 8px 16px',
+            transition: 'all 0.2s',
+            boxShadow: focused
+              ? '0 0 0 3px rgba(124,92,252,0.08), 0 0 30px rgba(124,92,252,0.08)'
+              : 'none',
+          }}
+        >
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            disabled={disabled}
+            placeholder={
               disabled
-                ? 'border-[#1c1c22] opacity-60'
-                : 'border-[#1c1c22] focus-within:border-[--primary]/40 focus-within:ring-1 focus-within:ring-[--primary]/10',
-            ].join(' ')}
+                ? 'AI is thinking…'
+                : 'Ask about your finances, add expenses, get insights…'
+            }
+            rows={1}
+            style={{
+              flex: 1,
+              resize: 'none',
+              border: 'none',
+              background: 'transparent',
+              color: '#f0efff',
+              fontFamily: '"DM Sans", sans-serif',
+              fontSize: '15px',
+              lineHeight: '1.6',
+              outline: 'none',
+              padding: '8px 0',
+              minHeight: '44px',
+              maxHeight: '180px',
+              cursor: disabled ? 'not-allowed' : 'text',
+            }}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = 'auto';
+              el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+            }}
+          />
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              paddingBottom: '4px',
+            }}
           >
-            <Textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={disabled}
-              placeholder={
-                disabled
-                  ? 'AI is thinking…'
-                  : 'Ask about your finances, add expenses, get insights…'
-              }
-              rows={1}
-              className='
-                flex-1 resize-none border-0 bg-transparent shadow-none
-                text-[--foreground] placeholder:text-[--foreground-secondary]/50
-                text-sm px-4 py-3.5 min-h-[52px] max-h-[200px]
-                focus-visible:ring-0 focus-visible:ring-offset-0
-                leading-relaxed disabled:cursor-not-allowed
-              '
-            />
+            <button
+              type='button'
+              disabled
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                background: 'transparent',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'not-allowed',
+                color: 'rgba(74,72,112,0.4)',
+              }}
+            >
+              <Mic style={{ width: '15px', height: '15px' }} />
+            </button>
 
-            <div className='flex items-center gap-1 p-2.5'>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    className='h-8 w-8 hidden sm:inline-flex text-[--foreground-secondary]/40 hover:text-[--foreground-secondary] hover:bg-[#1a1a1f]'
-                  >
-                    <Mic className='h-4 w-4' />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side='top'>
-                  <p>Voice input (coming soon)</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type='button'
-                    size='icon'
-                    disabled={!canSubmit}
-                    onClick={handleSubmit}
-                    className={[
-                      'h-8 w-8 shrink-0 rounded-lg transition-all duration-150',
-                      canSubmit
-                        ? 'bg-[--primary] text-[--primary-foreground] hover:bg-[--primary]/90 shadow-sm'
-                        : 'bg-[#1a1a1f] text-[--foreground-secondary]/30',
-                    ].join(' ')}
-                  >
-                    <ArrowUp className='h-4 w-4' strokeWidth={2.5} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side='top'>
-                  <p>Send (Enter)</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+            <button
+              type='button'
+              disabled={!canSubmit}
+              onClick={handleSubmit}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                background: canSubmit
+                  ? 'linear-gradient(135deg, #7c5cfc, #00d4ff)'
+                  : 'rgba(74,72,112,0.2)',
+                boxShadow: canSubmit ? '0 0 15px rgba(124,92,252,0.4)' : 'none',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+              }}
+            >
+              <ArrowUp
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  color: canSubmit ? '#fff' : 'rgba(74,72,112,0.5)',
+                }}
+                strokeWidth={2.5}
+              />
+            </button>
           </div>
-
-          <p className='text-center text-[10px] font-mono text-[--foreground-secondary]/30 mt-2 tracking-wide'>
-            <kbd className='font-sans'>Enter</kbd> to send ·{' '}
-            <kbd className='font-sans'>Shift+Enter</kbd> for new line
-          </p>
         </div>
+
+        <p
+          style={{
+            textAlign: 'center',
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '10px',
+            color: '#4a4870',
+            marginTop: '8px',
+            letterSpacing: '0.05em',
+          }}
+        >
+          Enter to send · Shift+Enter for new line
+        </p>
       </div>
-    </TooltipProvider>
+    </div>
   );
 }

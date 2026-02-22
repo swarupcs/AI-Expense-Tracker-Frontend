@@ -3,51 +3,35 @@ import type { StreamMessage } from '@/types/StreamMessage.types';
 import { ChatInput } from './ChatInput';
 import { ChatMessage } from './ChatMessage';
 import {
-  Zap,
+  Cpu,
   BarChart2,
   PlusCircle,
   TrendingUp,
   Target,
   Trash2,
+  Zap,
 } from 'lucide-react';
 import { streamChat, chatApi } from '@/api/chat.api';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 const SUGGESTIONS = [
-  { icon: BarChart2, text: 'Show my spending this month as a chart' },
-  { icon: PlusCircle, text: 'Add expense: Coffee ₹180' },
-  { icon: TrendingUp, text: 'What did I spend last week?' },
-  { icon: Target, text: 'How can I reduce dining costs?' },
+  {
+    icon: BarChart2,
+    text: 'Show my spending this month as a chart',
+    color: '#7c5cfc',
+  },
+  { icon: PlusCircle, text: 'Add expense: Coffee ₹180', color: '#00d4ff' },
+  { icon: TrendingUp, text: 'What did I spend last week?', color: '#00ff87' },
+  { icon: Target, text: 'How can I reduce dining costs?', color: '#ffb830' },
 ];
 
 export function ChatContainer() {
   const threadId = useId();
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const cancelRef = useRef<(() => void) | null>(null);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -60,6 +44,7 @@ export function ChatContainer() {
   const handleClearHistory = async () => {
     await chatApi.deleteHistory(threadId);
     setMessages([]);
+    setShowClearConfirm(false);
   };
 
   const handleSubmit = (userInput: string) => {
@@ -67,14 +52,12 @@ export function ChatContainer() {
     addMessage({ type: 'user', payload: { text: userInput } });
     setIsStreaming(true);
 
-    // Track the current AI message id so we can append to it
     let currentAiId: string | null = null;
 
     cancelRef.current = streamChat(userInput, threadId, {
       onMessage: (msg) => {
         if (msg.type === 'ai') {
           if (currentAiId === null) {
-            // First chunk — create a new AI message
             const id = `${Date.now()}-${Math.random()}`;
             currentAiId = id;
             setMessages((prev) => [
@@ -86,7 +69,6 @@ export function ChatContainer() {
               } as StreamMessage,
             ]);
           } else {
-            // Subsequent chunks — append text to the existing AI message
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === currentAiId && m.type === 'ai'
@@ -99,8 +81,6 @@ export function ChatContainer() {
             );
           }
         } else {
-          // Non-AI messages (tool calls, tool results, errors) always add new entries
-          // Also reset currentAiId so next AI chunk starts fresh
           currentAiId = null;
           addMessage(msg as Omit<StreamMessage, 'id'>);
         }
@@ -118,170 +98,463 @@ export function ChatContainer() {
   };
 
   return (
-    <TooltipProvider>
-      {/* 
-        KEY FIX: Use h-full instead of h-screen so it fills the parent <main> 
-        which already has h-screen. Then overflow-hidden on this container 
-        ensures the inner scroll area is properly constrained.
-      */}
-      <div className='flex flex-col h-full overflow-hidden bg-[--background]'>
-        {/* Header — fixed height, never shrinks */}
-        <div className='shrink-0 border-b border-[#1c1c22] bg-[#0a0a0c] px-6 py-4'>
-          <div className='max-w-3xl mx-auto flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              <div className='w-9 h-9 rounded-xl bg-[--primary] flex items-center justify-center shrink-0'>
-                <Zap
-                  className='w-4 h-4 text-[--primary-foreground]'
-                  strokeWidth={2.5}
-                />
-              </div>
-              <div>
-                <h1 className='font-display text-base font-bold text-[--foreground]'>
-                  Finance Assistant
-                </h1>
-                <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
-                  AI-Powered Insights
-                </p>
-              </div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+        background: '#080810',
+        position: 'relative',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          borderBottom: '1px solid rgba(124,92,252,0.1)',
+          background: 'rgba(8,8,16,0.95)',
+          padding: '18px 24px',
+          flexShrink: 0,
+          backdropFilter: 'blur(20px)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '760px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background:
+                  'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
+                border: '1px solid rgba(124,92,252,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 20px rgba(124,92,252,0.2)',
+              }}
+            >
+              <Cpu
+                style={{ width: '18px', height: '18px', color: '#9d7fff' }}
+              />
             </div>
-
-            <div className='flex items-center gap-2'>
-              {messages.length > 0 && !isStreaming && (
-                <AlertDialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8 text-[--foreground-secondary] hover:text-red-400 hover:bg-red-950/20'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </Button>
-                      </AlertDialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>Clear conversation</TooltipContent>
-                  </Tooltip>
-                  <AlertDialogContent className='bg-[#111114] border-[#1c1c22]'>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className='text-[--foreground]'>
-                        Clear conversation?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription className='text-[--foreground-secondary]'>
-                        This will permanently delete all messages in this
-                        thread. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel className='bg-[#1a1a1f] border-[#1c1c22] text-[--foreground-secondary] hover:bg-[#222226] hover:text-[--foreground]'>
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleClearHistory}
-                        className='bg-red-600 text-white hover:bg-red-700'
-                      >
-                        Clear
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-
-              {isStreaming ? (
-                <Badge
-                  variant='outline'
-                  className='gap-1.5 border-[--primary]/20 bg-[--primary]/10 text-[--primary] font-mono text-[10px] px-3 py-1'
-                >
-                  <span className='w-1.5 h-1.5 rounded-full bg-[--primary] animate-bounce [animation-delay:0ms]' />
-                  <span className='w-1.5 h-1.5 rounded-full bg-[--primary] animate-bounce [animation-delay:150ms]' />
-                  <span className='w-1.5 h-1.5 rounded-full bg-[--primary] animate-bounce [animation-delay:300ms]' />
-                  Thinking
-                </Badge>
-              ) : (
-                <Badge
-                  variant='outline'
-                  className='border-green-900/40 bg-[#0f1a10] text-green-400 font-mono text-[10px] px-3 py-1'
-                >
-                  ● Active
-                </Badge>
-              )}
+            <div>
+              <div
+                style={{
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: '#f0efff',
+                }}
+              >
+                Finance Assistant
+              </div>
+              <div
+                style={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  color: '#4a4870',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                AI-Powered Insights
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* 
-          Messages area — THIS is the scrollable region.
-          
-          The fix: replace <ScrollArea> (shadcn) with a plain <div> using:
-            - flex-1        → takes all remaining vertical space
-            - min-h-0       → CRITICAL: without this, flex children don't shrink 
-                              below their content size, breaking scroll in flex containers
-            - overflow-y-auto → native browser scroll, reliable and smooth
-        */}
-        <div
-          ref={scrollContainerRef}
-          className='flex-1 min-h-0 overflow-y-auto'
-        >
-          <div className='max-w-3xl mx-auto'>
-            {messages.length === 0 ? (
-              <div className='flex flex-col items-center justify-center min-h-[70vh] px-6 py-12'>
-                <div className='w-16 h-16 rounded-2xl bg-[--primary] flex items-center justify-center mb-6'>
-                  <Zap
-                    className='w-8 h-8 text-[--primary-foreground]'
-                    strokeWidth={2}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {messages.length > 0 && !isStreaming && (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  border: '1px solid transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#4a4870',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background =
+                    'rgba(255,59,92,0.1)';
+                  (e.currentTarget as HTMLElement).style.borderColor =
+                    'rgba(255,59,92,0.2)';
+                  (e.currentTarget as HTMLElement).style.color = '#ff3b5c';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background =
+                    'transparent';
+                  (e.currentTarget as HTMLElement).style.borderColor =
+                    'transparent';
+                  (e.currentTarget as HTMLElement).style.color = '#4a4870';
+                }}
+              >
+                <Trash2 style={{ width: '15px', height: '15px' }} />
+              </button>
+            )}
+            {isStreaming ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 14px',
+                  background: 'rgba(124,92,252,0.1)',
+                  border: '1px solid rgba(124,92,252,0.25)',
+                  borderRadius: '20px',
+                }}
+              >
+                {[0, 150, 300].map((delay) => (
+                  <div
+                    key={delay}
+                    style={{
+                      width: '5px',
+                      height: '5px',
+                      borderRadius: '50%',
+                      background: '#9d7fff',
+                      animation: `bounce 1s ${delay}ms ease-in-out infinite`,
+                    }}
                   />
-                </div>
-                <h2 className='font-display text-3xl font-bold text-[--foreground] mb-2 text-center'>
-                  What can I help with?
-                </h2>
-                <p className='text-sm text-[--foreground-secondary] text-center max-w-sm mb-10'>
-                  Ask about spending, add expenses, get charts, or get
-                  personalized financial advice.
-                </p>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg'>
-                  {SUGGESTIONS.map(({ icon: Icon, text }) => (
-                    <Button
-                      key={text}
-                      variant='outline'
-                      onClick={() => handleSubmit(text)}
-                      className='justify-start gap-3 h-auto px-3 py-3 rounded-xl bg-[#111114] border-[#1c1c22] text-[--foreground-secondary] hover:text-[--foreground] hover:border-[--primary]/30 hover:bg-[#161619] transition-all duration-150'
-                    >
-                      <Icon className='w-4 h-4 text-[--primary] shrink-0' />
-                      <span className='text-sm text-left'>{text}</span>
-                    </Button>
-                  ))}
-                </div>
+                ))}
+                <span
+                  style={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontSize: '10px',
+                    color: '#9d7fff',
+                    marginLeft: '2px',
+                  }}
+                >
+                  Thinking
+                </span>
               </div>
             ) : (
-              <div className='divide-y divide-[#1c1c22]'>
-                {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
-                {isStreaming && (
-                  <div className='flex gap-4 py-5 px-6'>
-                    <div className='shrink-0 w-7 h-7 rounded-lg bg-[--primary] flex items-center justify-center'>
-                      <span className='text-xs font-mono font-bold text-[--primary-foreground]'>
-                        AI
-                      </span>
-                    </div>
-                    <div className='flex items-center gap-1.5 pt-2'>
-                      <span className='w-1.5 h-1.5 rounded-full bg-[--primary] animate-bounce [animation-delay:0ms]' />
-                      <span className='w-1.5 h-1.5 rounded-full bg-[--primary] animate-bounce [animation-delay:150ms]' />
-                      <span className='w-1.5 h-1.5 rounded-full bg-[--primary] animate-bounce [animation-delay:300ms]' />
-                    </div>
-                  </div>
-                )}
-                {/* Scroll anchor */}
-                <div ref={messageEndRef} className='h-4' />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '6px 12px',
+                  background: 'rgba(0,255,135,0.07)',
+                  border: '1px solid rgba(0,255,135,0.2)',
+                  borderRadius: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: '#00ff87',
+                    boxShadow: '0 0 6px #00ff87',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontSize: '10px',
+                    color: '#00ff87',
+                  }}
+                >
+                  Ready
+                </span>
               </div>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Footer — fixed height, never shrinks */}
-        <Separator className='bg-[#1c1c22] shrink-0' />
+      {/* Clear confirm modal */}
+      {showClearConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: '#0d0d1a',
+              border: '1px solid rgba(255,59,92,0.3)',
+              borderRadius: '20px',
+              padding: '32px',
+              maxWidth: '380px',
+              width: '90%',
+              boxShadow: '0 0 60px rgba(255,59,92,0.1)',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: '"Syne", sans-serif',
+                fontSize: '20px',
+                fontWeight: 700,
+                color: '#f0efff',
+                marginBottom: '10px',
+              }}
+            >
+              Clear conversation?
+            </div>
+            <p
+              style={{
+                color: '#8b89b0',
+                fontSize: '14px',
+                marginBottom: '24px',
+                lineHeight: 1.6,
+              }}
+            >
+              All messages in this thread will be permanently deleted.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px',
+                  color: '#8b89b0',
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearHistory}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'rgba(255,59,92,0.15)',
+                  border: '1px solid rgba(255,59,92,0.3)',
+                  borderRadius: '10px',
+                  color: '#ff3b5c',
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+          {messages.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '65vh',
+                padding: '40px 24px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '24px',
+                  boxShadow: '0 0 40px rgba(124,92,252,0.4)',
+                }}
+              >
+                <Zap
+                  style={{ width: '32px', height: '32px', color: '#fff' }}
+                  strokeWidth={2}
+                />
+              </div>
+              <h2
+                style={{
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: '30px',
+                  fontWeight: 800,
+                  color: '#f0efff',
+                  letterSpacing: '-0.5px',
+                  marginBottom: '10px',
+                }}
+              >
+                What can I help with?
+              </h2>
+              <p
+                style={{
+                  color: '#4a4870',
+                  fontSize: '15px',
+                  maxWidth: '380px',
+                  lineHeight: 1.7,
+                  marginBottom: '40px',
+                }}
+              >
+                Ask about spending, add expenses, get charts, or get
+                personalized financial advice.
+              </p>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  width: '100%',
+                  maxWidth: '520px',
+                }}
+              >
+                {SUGGESTIONS.map(({ icon: Icon, text, color }) => (
+                  <button
+                    key={text}
+                    onClick={() => handleSubmit(text)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      padding: '16px',
+                      background: 'rgba(13,13,26,0.8)',
+                      border: `1px solid rgba(124,92,252,0.12)`,
+                      borderRadius: '14px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                      color: '#8b89b0',
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '13px',
+                      lineHeight: 1.5,
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor =
+                        `${color}40`;
+                      (e.currentTarget as HTMLElement).style.background =
+                        `${color}08`;
+                      (e.currentTarget as HTMLElement).style.color = '#f0efff';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor =
+                        'rgba(124,92,252,0.12)';
+                      (e.currentTarget as HTMLElement).style.background =
+                        'rgba(13,13,26,0.8)';
+                      (e.currentTarget as HTMLElement).style.color = '#8b89b0';
+                    }}
+                  >
+                    <Icon
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        color,
+                        flexShrink: 0,
+                        marginTop: '2px',
+                      }}
+                    />
+                    <span>{text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              {messages.map((msg) => (
+                <ChatMessage key={msg.id} message={msg} />
+              ))}
+              {isStreaming && (
+                <div
+                  style={{ display: 'flex', gap: '14px', padding: '20px 24px' }}
+                >
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      background:
+                        'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
+                      border: '1px solid rgba(124,92,252,0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Cpu
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        color: '#9d7fff',
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      paddingTop: '6px',
+                    }}
+                  >
+                    {[0, 150, 300].map((delay) => (
+                      <div
+                        key={delay}
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#9d7fff',
+                          animation: `bounce 1s ${delay}ms ease-in-out infinite`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div ref={messageEndRef} style={{ height: '16px' }} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Input */}
+      <div
+        style={{
+          borderTop: '1px solid rgba(124,92,252,0.1)',
+          background: 'rgba(8,8,16,0.95)',
+          flexShrink: 0,
+          backdropFilter: 'blur(20px)',
+        }}
+      >
         <ChatInput onSubmit={handleSubmit} disabled={isStreaming} />
       </div>
-    </TooltipProvider>
+
+      <style>{`
+
+        @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+      `}</style>
+    </div>
   );
 }
