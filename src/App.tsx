@@ -1,13 +1,63 @@
-import './App.css'
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Sidebar } from '@/components/Sidebar';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import Dashboard from '@/pages/Dashboard';
+import ChatPage from '@/pages/ChatPage';
+import ExpensesPage from '@/pages/ExpensesPage';
+import InsightsPage from '@/pages/InsightsPage';
+import SettingsPage from '@/pages/SettingsPage';
+import LoginPage from '@/pages/LoginPage';
+import SignupPage from '@/pages/SignupPage';
+import { useAuthStore } from '@/store/auth.store';
 
-function App() {
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+});
 
-
+function AppShell() {
   return (
-    <>
-    
-    </>
-  )
+    <div className='flex h-screen font-sans antialiased overflow-hidden'>
+      <Sidebar />
+      <main className='flex-1 overflow-hidden'>
+        <Routes>
+          <Route path='/' element={<Dashboard />} />
+          <Route path='/chat' element={<ChatPage />} />
+          <Route path='/expenses' element={<ExpensesPage />} />
+          <Route path='/insights' element={<InsightsPage />} />
+          <Route path='/settings' element={<SettingsPage />} />
+          <Route path='*' element={<Navigate to='/' replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
 }
 
-export default App
+function AuthHydrator({ children }: { children: React.ReactNode }) {
+  const hydrate = useAuthStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+  return <>{children}</>;
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthHydrator>
+          <Routes>
+            <Route path='/login' element={<LoginPage />} />
+            <Route path='/signup' element={<SignupPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path='/*' element={<AppShell />} />
+            </Route>
+          </Routes>
+        </AuthHydrator>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
