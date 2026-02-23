@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useId } from 'react';
-import type { StreamMessage } from '@/types/StreamMessage.types';
+import type { StreamMessage } from '@/types/Streammessage.types';
 import { ChatInput } from './ChatInput';
 import { ChatMessage } from './ChatMessage';
 import {

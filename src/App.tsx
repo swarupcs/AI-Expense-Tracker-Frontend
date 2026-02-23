@@ -10,6 +10,7 @@ import InsightsPage from '@/pages/InsightsPage';
 import SettingsPage from '@/pages/SettingsPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
+import GoogleCallbackPage from '@/pages/GoogleCallbackPage';
 import { useAuthStore } from '@/store/auth.store';
 
 const queryClient = new QueryClient({
@@ -28,7 +29,6 @@ function AppShell() {
     >
       <Sidebar />
       <main style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {/* Subtle grid overlay */}
         <div
           style={{
             position: 'absolute',
@@ -51,13 +51,6 @@ function AppShell() {
           </Routes>
         </div>
       </main>
-
-      <style>{`
-          5%   { opacity: 1; }
-          95%  { opacity: 1; }
-          100% { transform: translateY(100vh); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -78,6 +71,10 @@ function App() {
           <Routes>
             <Route path='/login' element={<LoginPage />} />
             <Route path='/signup' element={<SignupPage />} />
+            <Route
+              path='/auth/google/callback'
+              element={<GoogleCallbackPage />}
+            />
             <Route element={<ProtectedRoute />}>
               <Route path='/*' element={<AppShell />} />
             </Route>

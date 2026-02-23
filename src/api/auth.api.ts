@@ -24,6 +24,9 @@ export interface PublicUser {
   lastLoginAt?: string;
   createdAt: string;
   updatedAt?: string;
+  googleId?: string;
+  googlePicture?: string;
+  authProvider?: string;
   _count?: { expenses: number };
 }
 
@@ -57,5 +60,18 @@ export const authApi = {
     request<void>('/auth/change-password', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+
+  // Google OAuth
+  getGoogleAuthUrl: () => request<{ url: string }>('/auth/google'),
+  googleCallback: (code: string) =>
+    request<AuthResult>('/auth/google/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+  googleTokenAuth: (idToken: string) =>
+    request<AuthResult>('/auth/google/token', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
     }),
 };

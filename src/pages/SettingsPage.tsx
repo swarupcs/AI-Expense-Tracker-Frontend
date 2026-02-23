@@ -53,8 +53,8 @@ export default function SettingsPage() {
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPwSuccess(true);
       setTimeout(() => setPwSuccess(false), 3000);
-    } catch (err: any) {
-      setPwError(err.message ?? 'Failed to change password');
+    } catch (err: unknown) {
+      setPwError(err instanceof Error ? err.message : 'Failed to change password');
     }
   };
 
