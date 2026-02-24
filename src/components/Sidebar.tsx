@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Menu,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useSignOut } from '@/services/auth.service';
@@ -17,11 +19,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -32,40 +34,105 @@ const navItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar() {
+// Pure React hover tooltip — no external deps, fully controlled styles
+function SidebarTooltip({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const childRef = useRef<HTMLDivElement>(null);
+
+  const show = () => {
+    if (childRef.current) {
+      const rect = childRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 14,
+      });
+    }
+    setVisible(true);
+  };
+
+  const hide = () => setVisible(false);
+
+  return (
+    <>
+      <div
+        ref={childRef}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        style={{ width: 'fit-content' }}
+      >
+        {children}
+      </div>
+      {visible &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              top: pos.top,
+              left: pos.left,
+              transform: 'translateY(-50%)',
+              zIndex: 99999,
+              background: '#1a1a2e',
+              border: '1px solid rgba(124,92,252,0.5)',
+              borderRadius: '10px',
+              padding: '8px 12px',
+              boxShadow:
+                '0 4px 24px rgba(0,0,0,0.7), 0 0 16px rgba(124,92,252,0.2)',
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                left: -5,
+                top: '50%',
+                transform: 'translateY(-50%) rotate(45deg)',
+                width: 8,
+                height: 8,
+                background: '#1a1a2e',
+                border: '1px solid rgba(124,92,252,0.5)',
+                borderRight: 'none',
+                borderTop: 'none',
+              }}
+            />
+            {content}
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+function NavItems({
+  isExpanded,
+  onNavClick,
+}: {
+  isExpanded?: boolean;
+  onNavClick?: () => void;
+}) {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const { mutate: signOut, isPending } = useSignOut();
-  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <aside
-        className={cn(
-          'flex flex-col h-screen shrink-0 relative transition-all duration-300 ease-in-out',
-          'bg-[rgba(8,8,16,0.95)] border-r border-[rgba(124,92,252,0.12)] backdrop-blur-xl',
-          isExpanded ? 'w-60' : 'w-[72px]',
-        )}
-        style={{ padding: '20px 0' }}
-      >
-        {/* Vertical gradient line */}
-        <div
-          className='absolute right-0 top-[20%] bottom-[20%] w-px'
-          style={{
-            background:
-              'linear-gradient(180deg, transparent, rgba(124,92,252,0.4), rgba(0,212,255,0.3), transparent)',
-          }}
-        />
-
-        {/* Logo & Header */}
+    <>
+      <div className='flex flex-col h-full'>
+        {/* Logo */}
         <div
           className={cn(
-            'flex items-center gap-3 mb-8 transition-all',
+            'flex items-center gap-3 mb-8',
             isExpanded ? 'justify-start px-5' : 'justify-center',
           )}
         >
           <div
-            className='w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0 cursor-pointer'
+            className='w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0'
             style={{
               background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
               boxShadow: '0 0 20px rgba(124,92,252,0.5)',
@@ -74,10 +141,7 @@ export function Sidebar() {
             <Zap className='w-5 h-5 text-white' strokeWidth={2.5} />
           </div>
           {isExpanded && (
-            <div
-              className='transition-opacity duration-200'
-              style={{ opacity: isExpanded ? 1 : 0, whiteSpace: 'nowrap' }}
-            >
+            <div>
               <div className='font-display text-lg font-extrabold text-[--foreground] tracking-tight'>
                 ExpenseAI
               </div>
@@ -86,27 +150,6 @@ export function Sidebar() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Toggle Button */}
-        <div
-          className={cn(
-            'mb-4 transition-all',
-            isExpanded ? 'px-5 flex justify-end' : 'flex justify-center',
-          )}
-        >
-          <Button
-            variant='ghost'
-            size='icon'
-            onClick={() => setIsExpanded(!isExpanded)}
-            className='h-8 w-8 bg-[rgba(124,92,252,0.1)] border border-[rgba(124,92,252,0.2)] hover:bg-[rgba(124,92,252,0.2)] hover:border-[rgba(124,92,252,0.4)] text-[--violet-bright]'
-          >
-            {isExpanded ? (
-              <ChevronLeft className='h-4 w-4' />
-            ) : (
-              <ChevronRight className='h-4 w-4' />
-            )}
-          </Button>
         </div>
 
         {/* Nav */}
@@ -124,14 +167,14 @@ export function Sidebar() {
                 : location.pathname.startsWith(item.href);
 
             const navButton = (
-              <NavLink to={item.href} className='w-full'>
+              <NavLink to={item.href} className='w-full' onClick={onNavClick}>
                 <Button
                   variant='ghost'
                   className={cn(
-                    'relative transition-all h-12 rounded-xl',
+                    'relative transition-all h-12 rounded-xl w-full',
                     isExpanded
-                      ? 'w-full justify-start gap-3 px-3.5'
-                      : 'w-12 justify-center',
+                      ? 'justify-start gap-3 px-3.5'
+                      : 'justify-center w-12',
                     isActive
                       ? 'bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.15)] border border-[rgba(124,92,252,0.4)] shadow-[0_0_15px_rgba(124,92,252,0.25)]'
                       : 'border border-transparent hover:bg-[rgba(124,92,252,0.1)] hover:border-[rgba(124,92,252,0.2)]',
@@ -175,15 +218,23 @@ export function Sidebar() {
             return isExpanded ? (
               <div key={item.href}>{navButton}</div>
             ) : (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                <TooltipContent
-                  side='right'
-                  className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]'
-                >
-                  <p className='font-sans text-sm'>{item.label}</p>
-                </TooltipContent>
-              </Tooltip>
+              <SidebarTooltip
+                key={item.href}
+                content={
+                  <span
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontWeight: 500,
+                      fontSize: '13px',
+                      color: '#f0efff',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                }
+              >
+                {navButton}
+              </SidebarTooltip>
             );
           })}
         </nav>
@@ -206,33 +257,48 @@ export function Sidebar() {
                   : 'justify-center',
               )}
             >
-              <Tooltip>
-                <TooltipTrigger asChild>
+              {isExpanded ? (
+                <Avatar className='w-[38px] h-[38px] rounded-xl shrink-0 cursor-default'>
+                  <AvatarFallback className='rounded-xl bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.2)] border border-[rgba(124,92,252,0.3)] text-[--violet-bright] font-display font-bold text-sm'>
+                    {user.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <SidebarTooltip
+                  content={
+                    <div>
+                      <p
+                        style={{
+                          fontFamily: 'DM Sans, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '13px',
+                          color: '#f0efff',
+                          marginBottom: 2,
+                        }}
+                      >
+                        {user.name}
+                      </p>
+                      <p
+                        style={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: '11px',
+                          color: '#8b89b0',
+                        }}
+                      >
+                        {user.email}
+                      </p>
+                    </div>
+                  }
+                >
                   <Avatar className='w-[38px] h-[38px] rounded-xl shrink-0 cursor-default'>
                     <AvatarFallback className='rounded-xl bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.2)] border border-[rgba(124,92,252,0.3)] text-[--violet-bright] font-display font-bold text-sm'>
                       {user.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                </TooltipTrigger>
-                {!isExpanded && (
-                  <TooltipContent
-                    side='right'
-                    className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]'
-                  >
-                    <p className='font-sans text-sm font-semibold'>
-                      {user.name}
-                    </p>
-                    <p className='font-mono text-xs text-[--foreground-secondary]'>
-                      {user.email}
-                    </p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
+                </SidebarTooltip>
+              )}
               {isExpanded && (
-                <div
-                  className='min-w-0 flex-1 transition-opacity duration-200'
-                  style={{ opacity: isExpanded ? 1 : 0 }}
-                >
+                <div className='min-w-0 flex-1'>
                   <div className='font-sans text-[13px] font-semibold text-[--foreground] truncate'>
                     {user.name}
                   </div>
@@ -244,40 +310,195 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Sign Out Button */}
           {isExpanded ? (
             <Button
               variant='ghost'
               onClick={() => signOut()}
               disabled={isPending}
-              className='w-full h-[38px] justify-start gap-2.5 px-3.5 text-[--foreground-secondary] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all font-sans text-sm font-medium disabled:opacity-50'
+              className='w-full h-[38px] justify-start gap-2.5 px-3.5 text-[#8b89b0] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all font-sans text-sm font-medium disabled:opacity-50'
             >
               <LogOut className='h-4 w-4 shrink-0' />
               <span>Sign Out</span>
             </Button>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  onClick={() => signOut()}
-                  disabled={isPending}
-                  className='w-[38px] h-[38px] text-[--foreground-secondary] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all disabled:opacity-50'
+            <SidebarTooltip
+              content={
+                <span
+                  style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: 500,
+                    fontSize: '13px',
+                    color: '#ff6b6b',
+                  }}
                 >
-                  <LogOut className='h-4 w-4' />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent
-                side='right'
-                className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]'
+                  Sign Out
+                </span>
+              }
+            >
+              <Button
+                variant='ghost'
+                size='icon'
+                onClick={() => signOut()}
+                disabled={isPending}
+                className='w-[38px] h-[38px] text-[#8b89b0] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all disabled:opacity-50'
               >
-                <p className='font-sans text-sm'>Sign Out</p>
-              </TooltipContent>
-            </Tooltip>
+                <LogOut className='h-4 w-4' />
+              </Button>
+            </SidebarTooltip>
           )}
         </div>
+      </div>
+    </>
+  );
+}
+
+function MobileBottomNav({ onSignOut }: { onSignOut: () => void }) {
+  const location = useLocation();
+
+  return (
+    <nav
+      className='fixed bottom-0 left-0 right-0 z-50 md:hidden'
+      style={{
+        background: 'rgba(8,8,16,0.97)',
+        borderTop: '1px solid rgba(124,92,252,0.15)',
+        backdropFilter: 'blur(20px)',
+      }}
+    >
+      <div className='flex items-center justify-around px-2 py-2 safe-area-pb'>
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.href === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.href);
+          return (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              className='flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all'
+              style={{
+                color: isActive ? '#9d7fff' : '#4a4870',
+                background: isActive ? 'rgba(124,92,252,0.1)' : 'transparent',
+              }}
+            >
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <span className='text-[9px] font-mono tracking-wide'>
+                {item.label}
+              </span>
+            </NavLink>
+          );
+        })}
+        <button
+          onClick={() => onSignOut()}
+          className='flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all'
+          style={{ color: '#4a4870' }}
+        >
+          <LogOut size={20} strokeWidth={2} />
+          <span className='text-[9px] font-mono tracking-wide'>Logout</span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+export function Sidebar() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { mutate: signOut } = useSignOut();
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={cn(
+          'hidden md:flex flex-col h-screen shrink-0 relative transition-all duration-300 ease-in-out overflow-visible',
+          'bg-[rgba(8,8,16,0.95)] border-r border-[rgba(124,92,252,0.12)] backdrop-blur-xl',
+          isExpanded ? 'w-60' : 'w-[72px]',
+        )}
+        style={{ padding: '20px 0' }}
+      >
+        {/* Vertical gradient line */}
+        <div
+          className='absolute right-0 top-[20%] bottom-[20%] w-px'
+          style={{
+            background:
+              'linear-gradient(180deg, transparent, rgba(124,92,252,0.4), rgba(0,212,255,0.3), transparent)',
+          }}
+        />
+
+        {/* Toggle Button */}
+        <div
+          className={cn(
+            'mb-4 transition-all',
+            isExpanded ? 'px-5 flex justify-end' : 'flex justify-center',
+          )}
+        >
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => setIsExpanded(!isExpanded)}
+            className='h-8 w-8 bg-[rgba(124,92,252,0.1)] border border-[rgba(124,92,252,0.2)] hover:bg-[rgba(124,92,252,0.2)] hover:border-[rgba(124,92,252,0.4)] text-[--violet-bright]'
+          >
+            {isExpanded ? (
+              <ChevronLeft className='h-4 w-4' />
+            ) : (
+              <ChevronRight className='h-4 w-4' />
+            )}
+          </Button>
+        </div>
+
+        <NavItems isExpanded={isExpanded} />
       </aside>
-    </TooltipProvider>
+
+      {/* Mobile: Top bar with hamburger */}
+      <div
+        className='md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3'
+        style={{
+          background: 'rgba(8,8,16,0.97)',
+          borderBottom: '1px solid rgba(124,92,252,0.12)',
+          backdropFilter: 'blur(20px)',
+        }}
+      >
+        <div className='flex items-center gap-2'>
+          <div
+            className='w-8 h-8 rounded-lg flex items-center justify-center'
+            style={{ background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)' }}
+          >
+            <Zap className='w-4 h-4 text-white' strokeWidth={2.5} />
+          </div>
+          <span className='font-display text-base font-extrabold text-[--foreground]'>
+            ExpenseAI
+          </span>
+        </div>
+
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-9 w-9 border border-[rgba(124,92,252,0.2)] text-[--foreground-muted]'
+            >
+              <Menu className='h-5 w-5' />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side='right'
+            className='w-72 p-0 border-[rgba(124,92,252,0.2)]'
+            style={{ background: 'rgba(8,8,16,0.98)' }}
+          >
+            <SheetTitle className='sr-only'>Navigation Menu</SheetTitle>
+            <div className='flex flex-col h-full pt-6 pb-4'>
+              <NavItems
+                isExpanded={true}
+                onNavClick={() => setMobileOpen(false)}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <MobileBottomNav onSignOut={signOut} />
+    </>
   );
 }

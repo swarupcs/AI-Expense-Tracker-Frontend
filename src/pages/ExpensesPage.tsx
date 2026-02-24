@@ -21,6 +21,35 @@ import type {
   ExpenseFilters,
   CreateExpenseInput,
 } from '@/api/expenses.api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const CATEGORIES: Category[] = [
   'DINING',
@@ -60,18 +89,150 @@ const EMPTY_FORM = {
   notes: '',
 };
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '11px 14px',
-  background: 'rgba(13,13,26,0.8)',
-  border: '1px solid rgba(124,92,252,0.15)',
-  borderRadius: '10px',
-  color: '#f0efff',
-  fontFamily: '"DM Sans", sans-serif',
-  fontSize: '14px',
-  outline: 'none',
-  transition: 'all 0.2s',
-};
+function ExpenseForm({
+  editingId,
+  formData,
+  setFormData,
+  isSaving,
+  formError,
+  onSubmit,
+  onCancel,
+}: {
+  editingId: number | null;
+  formData: typeof EMPTY_FORM;
+  setFormData: React.Dispatch<React.SetStateAction<typeof EMPTY_FORM>>;
+  isSaving: boolean;
+  formError: string;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form onSubmit={onSubmit} className='space-y-4 px-1'>
+      {formError && (
+        <div
+          className='p-3 rounded-xl text-[#ff3b5c] text-sm'
+          style={{
+            background: 'rgba(255,59,92,0.08)',
+            border: '1px solid rgba(255,59,92,0.2)',
+          }}
+        >
+          {formError}
+        </div>
+      )}
+
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+        <div className='space-y-2'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+            Title
+          </Label>
+          <Input
+            value={formData.title}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, title: e.target.value }))
+            }
+            placeholder='e.g., Coffee'
+            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)]'
+          />
+        </div>
+        <div className='space-y-2'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+            Amount (₹)
+          </Label>
+          <Input
+            type='number'
+            step='0.01'
+            value={formData.amount}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, amount: e.target.value }))
+            }
+            placeholder='0.00'
+            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)]'
+          />
+        </div>
+        <div className='space-y-2'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+            Category
+          </Label>
+          <Select
+            value={formData.category}
+            onValueChange={(v) =>
+              setFormData((p) => ({ ...p, category: v as Category }))
+            }
+          >
+            <SelectTrigger className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus:ring-[#7c5cfc]/30'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]'>
+              {CATEGORIES.map((c) => (
+                <SelectItem
+                  key={c}
+                  value={c}
+                  className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'
+                >
+                  {CATEGORY_LABEL[c]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className='space-y-2'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+            Date
+          </Label>
+          <Input
+            type='date'
+            value={formData.date}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, date: e.target.value }))
+            }
+            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 [color-scheme:dark]'
+          />
+        </div>
+      </div>
+
+      <div className='space-y-2'>
+        <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+          Notes (optional)
+        </Label>
+        <Input
+          value={formData.notes}
+          onChange={(e) =>
+            setFormData((p) => ({ ...p, notes: e.target.value }))
+          }
+          placeholder='Any extra context…'
+          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)]'
+        />
+      </div>
+
+      <div className='flex gap-2.5 pt-1'>
+        <Button
+          type='submit'
+          disabled={isSaving}
+          className='flex-1 gap-2 font-display font-bold'
+          style={{
+            background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+            boxShadow: '0 0 20px rgba(124,92,252,0.25)',
+          }}
+        >
+          {isSaving ? (
+            <Loader2 className='w-4 h-4 animate-spin' />
+          ) : (
+            <Save className='w-4 h-4' />
+          )}
+          {editingId ? 'Update' : 'Add'} Expense
+        </Button>
+        <Button
+          type='button'
+          variant='outline'
+          onClick={onCancel}
+          className='gap-2 border-[rgba(124,92,252,0.18)] text-[#8b89b0] hover:text-[#f0efff]'
+        >
+          <X className='w-4 h-4' /> Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<ExpenseFilters>({});
@@ -104,6 +265,12 @@ export default function ExpensesPage() {
     setSearchQuery(q);
     setFilters((p) => ({ ...p, search: q || undefined }));
   };
+  const resetForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData(EMPTY_FORM);
+    setFormError('');
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.amount) {
@@ -124,11 +291,11 @@ export default function ExpensesPage() {
       } else {
         await createExpense(payload);
       }
-      setShowForm(false);
-      setEditingId(null);
-      setFormData(EMPTY_FORM);
+      resetForm();
     } catch (err: unknown) {
-      setFormError((err as { message?: string }).message ?? 'Something went wrong');
+      setFormError(
+        (err as { message?: string }).message ?? 'Something went wrong',
+      );
     }
   };
   const handleEdit = (exp: Expense) => {
@@ -156,799 +323,430 @@ export default function ExpensesPage() {
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        background: '#080810',
-      }}
+      className='flex flex-col h-full overflow-hidden'
+      style={{ background: '#080810' }}
     >
       {/* Header */}
       <div
+        className='shrink-0 px-4 sm:px-8 py-3.5 sm:py-5'
         style={{
           borderBottom: '1px solid rgba(124,92,252,0.1)',
           background: 'rgba(8,8,16,0.95)',
-          padding: '24px 32px',
-          flexShrink: 0,
           backdropFilter: 'blur(20px)',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontFamily: '"Syne", sans-serif',
-                fontSize: '26px',
-                fontWeight: 800,
-                color: '#f0efff',
-                letterSpacing: '-0.5px',
-                margin: 0,
-                marginBottom: '4px',
-              }}
-            >
+        <div className='flex items-center justify-between gap-3'>
+          <div className='min-w-0'>
+            <h1 className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight truncate'>
               Expenses
             </h1>
-            <p
-              style={{
-                fontFamily: '"JetBrains Mono", monospace',
-                fontSize: '11px',
-                color: '#4a4870',
-                margin: 0,
-              }}
-            >
+            <p className='font-mono text-[10px] sm:text-[11px] text-[#4a4870]'>
               {isLoading
                 ? 'Loading…'
                 : `${expenses.length} transactions · ₹${totalAmount.toLocaleString('en-IN')}`}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
+          <div className='flex items-center gap-2 shrink-0'>
+            <Button
+              variant='outline'
+              size='sm'
               onClick={handleExport}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-                padding: '10px 16px',
-                background: 'rgba(124,92,252,0.07)',
-                border: '1px solid rgba(124,92,252,0.18)',
-                borderRadius: '10px',
-                color: '#8b89b0',
-                cursor: 'pointer',
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '13px',
-                fontWeight: 500,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.color = '#f0efff';
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  'rgba(124,92,252,0.35)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.color = '#8b89b0';
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  'rgba(124,92,252,0.18)';
-              }}
+              className='gap-1.5 border-[rgba(124,92,252,0.18)] text-[#8b89b0] hover:text-[#f0efff] hover:border-[rgba(124,92,252,0.35)] hidden sm:flex'
             >
-              <Download style={{ width: '14px', height: '14px' }} /> Export
-            </button>
-            <button
+              <Download className='w-3.5 h-3.5' /> Export
+            </Button>
+            <Button
               onClick={() => {
                 setEditingId(null);
                 setFormData(EMPTY_FORM);
                 setShowForm((v) => !v);
               }}
+              size='sm'
+              className='gap-1.5 font-display font-bold text-white'
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-                padding: '10px 18px',
                 background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontFamily: '"Syne", sans-serif',
-                fontSize: '13px',
-                fontWeight: 700,
                 boxShadow: '0 0 20px rgba(124,92,252,0.3)',
-                transition: 'all 0.2s',
-                letterSpacing: '0.02em',
               }}
             >
-              <Plus style={{ width: '15px', height: '15px' }} /> Add Expense
-            </button>
+              <Plus className='w-4 h-4' />
+              <span className='hidden sm:inline'>Add Expense</span>
+              <span className='sm:hidden'>Add</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          padding: '24px 32px',
+      <ScrollArea className='flex-1'>
+        <div className='p-4 sm:p-6 space-y-4'>
+          {/* Inline form for desktop */}
+          {showForm && (
+            <div
+              className='hidden sm:block rounded-2xl p-6'
+              style={{
+                background: 'rgba(13,13,26,0.85)',
+                border: '1px solid rgba(124,92,252,0.2)',
+                backdropFilter: 'blur(20px)',
+              }}
+            >
+              <div className='flex items-center gap-2.5 mb-5'>
+                <div
+                  className='w-0.5 h-5 rounded-sm'
+                  style={{
+                    background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
+                  }}
+                />
+                <span className='font-display text-base font-bold text-[#f0efff]'>
+                  {editingId ? 'Edit Expense' : 'New Expense'}
+                </span>
+              </div>
+              <ExpenseForm
+                editingId={editingId}
+                formData={formData}
+                setFormData={setFormData}
+                isSaving={isSaving}
+                formError={formError}
+                onSubmit={handleSubmit}
+                onCancel={resetForm}
+              />
+            </div>
+          )}
+
+          {/* Mobile: Sheet - always mounted, controlled via open prop for smooth animation */}
+          <Sheet
+            open={showForm}
+            onOpenChange={(open) => {
+              if (!open) resetForm();
+            }}
+          >
+            <SheetContent
+              side='bottom'
+              className='sm:hidden rounded-t-3xl'
+              style={{
+                background: '#0d0d1a',
+                border: '1px solid rgba(124,92,252,0.2)',
+                paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+              }}
+            >
+              <SheetHeader className='mb-5'>
+                <SheetTitle className='font-display text-[#f0efff]'>
+                  {editingId ? 'Edit Expense' : 'New Expense'}
+                </SheetTitle>
+              </SheetHeader>
+              <ExpenseForm
+                editingId={editingId}
+                formData={formData}
+                setFormData={setFormData}
+                isSaving={isSaving}
+                formError={formError}
+                onSubmit={handleSubmit}
+                onCancel={resetForm}
+              />
+            </SheetContent>
+          </Sheet>
+
+          {/* Filters */}
+          <div className='space-y-3'>
+            {/* Category pills - horizontal scroll on mobile */}
+            <div className='flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap'>
+              {[null, ...CATEGORIES].map((cat) => {
+                const isActive = selectedCategory === cat;
+                const color = cat ? CATEGORY_COLORS[cat] : '#7c5cfc';
+                return (
+                  <button
+                    key={cat ?? 'all'}
+                    onClick={() => handleCategorySelect(cat)}
+                    className='shrink-0 px-3 py-1 sm:py-1.5 rounded-full font-mono text-[10px] sm:text-[11px] transition-all whitespace-nowrap'
+                    style={{
+                      border: `1px solid ${isActive ? color + '60' : 'rgba(124,92,252,0.12)'}`,
+                      background: isActive ? `${color}15` : 'transparent',
+                      color: isActive ? color : '#8b89b0',
+                      boxShadow: isActive ? `0 0 12px ${color}20` : 'none',
+                    }}
+                  >
+                    {cat ? CATEGORY_LABEL[cat] : 'All'}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search */}
+            <div className='relative'>
+              <Search className='absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#4a4870]' />
+              <Input
+                placeholder='Search expenses…'
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className='pl-10 bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] placeholder:text-[#4a4870] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.4)] focus-visible:bg-[rgba(124,92,252,0.05)]'
+              />
+            </div>
+          </div>
+
+          {/* Mobile card list */}
+          <div className='sm:hidden space-y-2'>
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className='h-16 rounded-2xl shimmer'
+                  style={{ background: 'rgba(124,92,252,0.05)' }}
+                />
+              ))
+            ) : expenses.length === 0 ? (
+              <div className='flex flex-col items-center py-16 text-center'>
+                <div className='text-4xl mb-3'>📭</div>
+                <p className='text-[#4a4870] text-sm'>No expenses found</p>
+              </div>
+            ) : (
+              expenses.map((exp) => {
+                const color = CATEGORY_COLORS[exp.category] ?? '#4a4870';
+                return (
+                  <Card
+                    key={exp.id}
+                    className='border-[rgba(124,92,252,0.08)] hover:border-[rgba(124,92,252,0.2)] transition-all'
+                    style={{ background: 'rgba(13,13,26,0.7)' }}
+                  >
+                    <CardContent className='p-3.5'>
+                      <div className='flex items-center justify-between gap-3'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <div className='flex flex-col min-w-0'>
+                            <span className='font-sans text-sm font-medium text-[#f0efff] truncate'>
+                              {exp.title}
+                            </span>
+                            <div className='flex items-center gap-2 mt-0.5'>
+                              <Badge
+                                className='text-[9px] font-mono px-1.5 py-0 h-4 border-0'
+                                style={{ background: `${color}15`, color }}
+                              >
+                                {CATEGORY_LABEL[exp.category]}
+                              </Badge>
+                              <span className='font-mono text-[9px] text-[#4a4870]'>
+                                {exp.date}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className='flex items-center gap-2 shrink-0'>
+                          <span
+                            className='font-display text-base font-bold'
+                            style={{ color }}
+                          >
+                            ₹{exp.amount.toLocaleString('en-IN')}
+                          </span>
+                          <div className='flex gap-1'>
+                            <button
+                              onClick={() => handleEdit(exp)}
+                              className='w-9 h-9 rounded-lg flex items-center justify-center transition-all'
+                              style={{
+                                background: 'rgba(91,143,255,0.1)',
+                                color: '#5b8fff',
+                                border: '1px solid rgba(91,143,255,0.2)',
+                              }}
+                            >
+                              <Edit2 className='w-3.5 h-3.5' />
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(exp)}
+                              className='w-9 h-9 rounded-lg flex items-center justify-center transition-all'
+                              style={{
+                                background: 'rgba(255,59,92,0.08)',
+                                color: '#ff3b5c',
+                                border: '1px solid rgba(255,59,92,0.2)',
+                              }}
+                            >
+                              <Trash2 className='w-3.5 h-3.5' />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div
+            className='hidden sm:block rounded-2xl overflow-hidden'
+            style={{
+              background: 'rgba(13,13,26,0.7)',
+              border: '1px solid rgba(124,92,252,0.12)',
+              backdropFilter: 'blur(20px)',
+            }}
+          >
+            <table className='w-full border-collapse'>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(124,92,252,0.1)' }}>
+                  {['Title', 'Category', 'Amount', 'Date', 'Actions'].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className='px-5 py-3.5 font-mono text-[10px] text-[#4a4870] uppercase tracking-widest font-medium text-left'
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className='text-center py-12 text-[#4a4870] text-sm'
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                ) : expenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className='text-center py-12'>
+                      <div className='text-3xl mb-3'>📭</div>
+                      <p className='text-[#4a4870] text-sm'>
+                        No expenses found
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  expenses.map((exp) => {
+                    const color = CATEGORY_COLORS[exp.category] ?? '#4a4870';
+                    return (
+                      <tr
+                        key={exp.id}
+                        className='hover:bg-[rgba(124,92,252,0.04)] transition-colors'
+                        style={{
+                          borderBottom: '1px solid rgba(124,92,252,0.06)',
+                        }}
+                      >
+                        <td className='px-5 py-3.5 font-sans text-sm font-medium text-[#f0efff]'>
+                          {exp.title}
+                        </td>
+                        <td className='px-5 py-3.5'>
+                          <span
+                            className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10px]'
+                            style={{
+                              border: `1px solid ${color}30`,
+                              background: `${color}0f`,
+                              color,
+                            }}
+                          >
+                            <span
+                              className='w-1.5 h-1.5 rounded-full'
+                              style={{
+                                background: color,
+                                boxShadow: `0 0 5px ${color}`,
+                              }}
+                            />
+                            {CATEGORY_LABEL[exp.category]}
+                          </span>
+                        </td>
+                        <td
+                          className='px-5 py-3.5 font-display text-sm font-bold'
+                          style={{ color }}
+                        >{`₹${exp.amount.toLocaleString('en-IN')}`}</td>
+                        <td className='px-5 py-3.5 font-mono text-[11px] text-[#4a4870]'>
+                          {new Date(exp.date).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td className='px-5 py-3.5'>
+                          <div className='flex gap-1.5'>
+                            <button
+                              onClick={() => handleEdit(exp)}
+                              className='w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all hover:bg-[rgba(91,143,255,0.15)]'
+                              style={{
+                                background: 'rgba(91,143,255,0.08)',
+                                border: '1px solid rgba(91,143,255,0.2)',
+                                color: '#5b8fff',
+                              }}
+                            >
+                              <Edit2 className='w-3 h-3' />
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(exp)}
+                              className='w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all hover:bg-[rgba(255,59,92,0.15)]'
+                              style={{
+                                background: 'rgba(255,59,92,0.08)',
+                                border: '1px solid rgba(255,59,92,0.2)',
+                                color: '#ff3b5c',
+                              }}
+                            >
+                              <Trash2 className='w-3 h-3' />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Export button for mobile */}
+          <div className='sm:hidden'>
+            <Button
+              variant='outline'
+              onClick={handleExport}
+              className='w-full gap-2 border-[rgba(124,92,252,0.18)] text-[#8b89b0] hover:text-[#f0efff]'
+            >
+              <Download className='w-4 h-4' /> Export CSV
+            </Button>
+          </div>
+        </div>
+      </ScrollArea>
+
+      {/* Delete confirm */}
+      <AlertDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirm(null);
         }}
       >
-        {/* Form */}
-        {showForm && (
-          <div
-            style={{
-              background: 'rgba(13,13,26,0.85)',
-              border: '1px solid rgba(124,92,252,0.2)',
-              borderRadius: '16px',
-              padding: '28px',
-              marginBottom: '24px',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 0 40px rgba(124,92,252,0.05)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '20px',
-              }}
-            >
-              <div
-                style={{
-                  width: '3px',
-                  height: '18px',
-                  borderRadius: '2px',
-                  background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  color: '#f0efff',
-                }}
-              >
-                {editingId ? 'Edit Expense' : 'New Expense'}
-              </span>
-            </div>
-
-            {formError && (
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: 'rgba(255,59,92,0.08)',
-                  border: '1px solid rgba(255,59,92,0.2)',
-                  borderRadius: '10px',
-                  color: '#ff3b5c',
-                  fontSize: '13px',
-                  marginBottom: '18px',
-                  fontFamily: '"DM Sans", sans-serif',
-                }}
-              >
-                {formError}
-              </div>
-            )}
-
-            <form
-              onSubmit={handleSubmit}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '16px',
-              }}
-            >
-              {/* Title */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#8b89b0',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Title
-                </label>
-                <input
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, title: e.target.value }))
-                  }
-                  placeholder='e.g., Coffee'
-                  style={inputStyle}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'rgba(124,92,252,0.5)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(124,92,252,0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(124,92,252,0.15)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              {/* Amount */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#8b89b0',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Amount (₹)
-                </label>
-                <input
-                  type='number'
-                  step='0.01'
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, amount: e.target.value }))
-                  }
-                  placeholder='0.00'
-                  style={inputStyle}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'rgba(124,92,252,0.5)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(124,92,252,0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(124,92,252,0.15)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              {/* Category */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#8b89b0',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Category
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData((p) => ({
-                      ...p,
-                      category: e.target.value as Category,
-                    }))
-                  }
-                  style={{
-                    ...inputStyle,
-                    cursor: 'pointer',
-                    appearance: 'none' as React.CSSProperties['appearance'],
-                  }}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c} style={{ background: '#0d0d1a' }}>
-                      {CATEGORY_LABEL[c]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Date */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#8b89b0',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Date
-                </label>
-                <input
-                  type='date'
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, date: e.target.value }))
-                  }
-                  style={{ ...inputStyle, colorScheme: 'dark' }}
-                />
-              </div>
-              {/* Notes */}
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#8b89b0',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Notes (optional)
-                </label>
-                <input
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, notes: e.target.value }))
-                  }
-                  placeholder='Any extra context…'
-                  style={inputStyle}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'rgba(124,92,252,0.5)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(124,92,252,0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(124,92,252,0.15)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              {/* Buttons */}
-              <div
-                style={{
-                  gridColumn: '1 / -1',
-                  display: 'flex',
-                  gap: '10px',
-                  paddingTop: '4px',
-                }}
-              >
-                <button
-                  type='submit'
-                  disabled={isSaving}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '11px 20px',
-                    background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    color: '#fff',
-                    cursor: isSaving ? 'not-allowed' : 'pointer',
-                    fontFamily: '"Syne", sans-serif',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    opacity: isSaving ? 0.6 : 1,
-                    boxShadow: '0 0 20px rgba(124,92,252,0.25)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {isSaving ? (
-                    <Loader2
-                      style={{
-                        width: '14px',
-                        height: '14px',
-                        animation: 'spin 1s linear infinite',
-                      }}
-                    />
-                  ) : (
-                    <Save style={{ width: '14px', height: '14px' }} />
-                  )}
-                  {editingId ? 'Update' : 'Add'} Expense
-                </button>
-                <button
-                  type='button'
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingId(null);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '11px 18px',
-                    background: 'transparent',
-                    border: '1px solid rgba(124,92,252,0.18)',
-                    borderRadius: '10px',
-                    color: '#8b89b0',
-                    cursor: 'pointer',
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '13px',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <X style={{ width: '14px', height: '14px' }} /> Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div style={{ marginBottom: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-              marginBottom: '12px',
-            }}
-          >
-            {[null, ...CATEGORIES].map((cat) => {
-              const isActive = selectedCategory === cat;
-              const color = cat ? CATEGORY_COLORS[cat] : '#7c5cfc';
-              return (
-                <button
-                  key={cat ?? 'all'}
-                  onClick={() => handleCategorySelect(cat)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    border: `1px solid ${isActive ? color + '60' : 'rgba(124,92,252,0.12)'}`,
-                    background: isActive ? `${color}15` : 'transparent',
-                    color: isActive ? color : '#8b89b0',
-                    cursor: 'pointer',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '11px',
-                    transition: 'all 0.2s',
-                    boxShadow: isActive ? `0 0 12px ${color}20` : 'none',
-                  }}
-                >
-                  {cat ? CATEGORY_LABEL[cat] : 'All'}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{ position: 'relative' }}>
-            <Search
-              style={{
-                position: 'absolute',
-                left: '14px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '15px',
-                height: '15px',
-                color: '#4a4870',
-              }}
-            />
-            <input
-              placeholder='Search expenses…'
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ ...inputStyle, paddingLeft: '42px' }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'rgba(124,92,252,0.4)';
-                e.target.style.background = 'rgba(124,92,252,0.05)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(124,92,252,0.15)';
-                e.target.style.background = 'rgba(13,13,26,0.8)';
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Table */}
-        <div
+        <AlertDialogContent
+          className='border-[rgba(255,59,92,0.3)] max-w-[90vw] sm:max-w-md'
           style={{
-            background: 'rgba(13,13,26,0.7)',
-            border: '1px solid rgba(124,92,252,0.12)',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            backdropFilter: 'blur(20px)',
+            background: '#0d0d1a',
+            boxShadow: '0 0 60px rgba(255,59,92,0.1)',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(124,92,252,0.1)' }}>
-                {['Title', 'Category', 'Amount', 'Date', 'Actions'].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: '14px 20px',
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: '10px',
-                      color: '#4a4870',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.12em',
-                      fontWeight: 500,
-                      textAlign: 'left',
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    style={{
-                      textAlign: 'center',
-                      padding: '48px',
-                      color: '#4a4870',
-                      fontFamily: '"DM Sans", sans-serif',
-                      fontSize: '14px',
-                    }}
-                  >
-                    Loading…
-                  </td>
-                </tr>
-              ) : expenses.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    style={{ textAlign: 'center', padding: '48px' }}
-                  >
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>
-                      📭
-                    </div>
-                    <div
-                      style={{
-                        color: '#4a4870',
-                        fontFamily: '"DM Sans", sans-serif',
-                        fontSize: '14px',
-                      }}
-                    >
-                      No expenses found
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                expenses.map((exp) => {
-                  const color = CATEGORY_COLORS[exp.category] ?? '#4a4870';
-                  return (
-                    <tr
-                      key={exp.id}
-                      style={{
-                        borderBottom: '1px solid rgba(124,92,252,0.06)',
-                        transition: 'background 0.15s',
-                        cursor: 'default',
-                      }}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLElement).style.background =
-                          'rgba(124,92,252,0.04)')
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLElement).style.background =
-                          'transparent')
-                      }
-                    >
-                      <td
-                        style={{
-                          padding: '14px 20px',
-                          fontFamily: '"DM Sans", sans-serif',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          color: '#f0efff',
-                        }}
-                      >
-                        {exp.title}
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '3px 10px',
-                            borderRadius: '20px',
-                            border: `1px solid ${color}30`,
-                            background: `${color}0f`,
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: '10px',
-                            color,
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: '5px',
-                              height: '5px',
-                              borderRadius: '50%',
-                              background: color,
-                              boxShadow: `0 0 5px ${color}`,
-                            }}
-                          />
-                          {CATEGORY_LABEL[exp.category]}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: '14px 20px',
-                          fontFamily: '"Syne", sans-serif',
-                          fontSize: '15px',
-                          fontWeight: 700,
-                          color,
-                        }}
-                      >
-                        ₹{exp.amount.toLocaleString('en-IN')}
-                      </td>
-                      <td
-                        style={{
-                          padding: '14px 20px',
-                          fontFamily: '"JetBrains Mono", monospace',
-                          fontSize: '11px',
-                          color: '#4a4870',
-                        }}
-                      >
-                        {new Date(exp.date).toLocaleDateString('en-IN', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            onClick={() => handleEdit(exp)}
-                            style={{
-                              width: '30px',
-                              height: '30px',
-                              borderRadius: '8px',
-                              background: 'rgba(91,143,255,0.08)',
-                              border: '1px solid rgba(91,143,255,0.2)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              color: '#5b8fff',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background = 'rgba(91,143,255,0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background = 'rgba(91,143,255,0.08)';
-                            }}
-                          >
-                            <Edit2 style={{ width: '12px', height: '12px' }} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(exp)}
-                            style={{
-                              width: '30px',
-                              height: '30px',
-                              borderRadius: '8px',
-                              background: 'rgba(255,59,92,0.08)',
-                              border: '1px solid rgba(255,59,92,0.2)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              color: '#ff3b5c',
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background = 'rgba(255,59,92,0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background = 'rgba(255,59,92,0.08)';
-                            }}
-                          >
-                            <Trash2 style={{ width: '12px', height: '12px' }} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Delete confirm modal */}
-      {deleteConfirm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.75)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: '#0d0d1a',
-              border: '1px solid rgba(255,59,92,0.3)',
-              borderRadius: '20px',
-              padding: '32px',
-              maxWidth: '380px',
-              width: '90%',
-              boxShadow: '0 0 60px rgba(255,59,92,0.1)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: '"Syne", sans-serif',
-                fontSize: '20px',
-                fontWeight: 700,
-                color: '#f0efff',
-                marginBottom: '10px',
-              }}
-            >
+          <AlertDialogHeader>
+            <AlertDialogTitle className='font-display text-[#f0efff]'>
               Delete expense?
-            </div>
-            <p
-              style={{
-                color: '#8b89b0',
-                fontSize: '14px',
-                marginBottom: '6px',
-                lineHeight: 1.6,
-              }}
-            >
-              <span style={{ color: '#f0efff', fontWeight: 500 }}>
-                {deleteConfirm.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className='text-[#8b89b0]'>
+              <span className='text-[#f0efff] font-medium'>
+                {deleteConfirm?.title}
               </span>{' '}
-              (₹{deleteConfirm.amount.toLocaleString('en-IN')}) will be
+              (₹{deleteConfirm?.amount.toLocaleString('en-IN')}) will be
               permanently deleted.
-            </p>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '10px',
-                  color: '#8b89b0',
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='border-[rgba(255,255,255,0.1)] text-[#8b89b0]'
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deleteConfirm) {
                   await deleteExpense(deleteConfirm.id);
                   setDeleteConfirm(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: 'rgba(255,59,92,0.15)',
-                  border: '1px solid rgba(255,59,92,0.3)',
-                  borderRadius: '10px',
-                  color: '#ff3b5c',
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
+                }
+              }}
+              className='border-[rgba(255,59,92,0.3)] text-[#ff3b5c] font-display font-semibold'
+              style={{ background: 'rgba(255,59,92,0.15)' }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

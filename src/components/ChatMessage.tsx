@@ -115,36 +115,27 @@ function detectChart(result: Record<string, unknown>): ChartShape {
   return null;
 }
 
-function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
-  const tooltipStyle = {
-    contentStyle: {
-      background: '#0d0d1a',
-      border: '1px solid rgba(124,92,252,0.2)',
-      borderRadius: '10px',
-      fontFamily: '"JetBrains Mono", monospace',
-      fontSize: '12px',
-      color: '#f0efff',
-    },
-    cursor: { fill: 'rgba(124,92,252,0.05)' },
-  };
+const tooltipStyle = {
+  contentStyle: {
+    background: '#0d0d1a',
+    border: '1px solid rgba(124,92,252,0.2)',
+    borderRadius: '10px',
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: '11px',
+    color: '#f0efff',
+  },
+  cursor: { fill: 'rgba(124,92,252,0.05)' },
+};
 
+function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
   if (chart.kind === 'bar') {
     const max = Math.max(...chart.data.map((d) => d.amount));
     return (
-      <div style={{ marginTop: '16px' }}>
-        <div
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '10px',
-            color: '#4a4870',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            marginBottom: '12px',
-          }}
-        >
+      <div className='mt-3 sm:mt-4'>
+        <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-widest mb-2 sm:mb-3'>
           Spending Chart
-        </div>
-        <ResponsiveContainer width='100%' height={180}>
+        </p>
+        <ResponsiveContainer width='100%' height={160}>
           <BarChart
             data={chart.data}
             margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -158,7 +149,7 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
             <XAxis
               dataKey='label'
               tick={{
-                fontSize: 10,
+                fontSize: 9,
                 fill: '#4a4870',
                 fontFamily: '"JetBrains Mono", monospace',
               }}
@@ -167,7 +158,7 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
             />
             <YAxis
               tick={{
-                fontSize: 10,
+                fontSize: 9,
                 fill: '#4a4870',
                 fontFamily: '"JetBrains Mono", monospace',
               }}
@@ -192,30 +183,20 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
       </div>
     );
   }
-
   if (chart.kind === 'pie') {
     return (
-      <div style={{ marginTop: '16px' }}>
-        <div
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '10px',
-            color: '#4a4870',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            marginBottom: '12px',
-          }}
-        >
+      <div className='mt-3 sm:mt-4'>
+        <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-widest mb-2 sm:mb-3'>
           Category Breakdown
-        </div>
-        <ResponsiveContainer width='100%' height={180}>
+        </p>
+        <ResponsiveContainer width='100%' height={160}>
           <PieChart>
             <Pie
               data={chart.data}
               cx='50%'
               cy='50%'
-              innerRadius={45}
-              outerRadius={75}
+              innerRadius={40}
+              outerRadius={65}
               dataKey='value'
               paddingAngle={2}
             >
@@ -229,23 +210,13 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
       </div>
     );
   }
-
   if (chart.kind === 'line') {
     return (
-      <div style={{ marginTop: '16px' }}>
-        <div
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '10px',
-            color: '#4a4870',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            marginBottom: '12px',
-          }}
-        >
+      <div className='mt-3 sm:mt-4'>
+        <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-widest mb-2 sm:mb-3'>
           Monthly Trend
-        </div>
-        <ResponsiveContainer width='100%' height={180}>
+        </p>
+        <ResponsiveContainer width='100%' height={160}>
           <LineChart
             data={chart.data}
             margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -256,12 +227,12 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
             />
             <XAxis
               dataKey='month'
-              tick={{ fontSize: 10, fill: '#4a4870' }}
+              tick={{ fontSize: 9, fill: '#4a4870' }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#4a4870' }}
+              tick={{ fontSize: 9, fill: '#4a4870' }}
               tickLine={false}
               axisLine={false}
             />
@@ -271,15 +242,14 @@ function RenderedChart({ chart }: { chart: NonNullable<ChartShape> }) {
               dataKey='amount'
               stroke='#7c5cfc'
               strokeWidth={2.5}
-              dot={{ fill: '#7c5cfc', r: 4, strokeWidth: 0 }}
-              activeDot={{ r: 6, fill: '#9d7fff' }}
+              dot={{ fill: '#7c5cfc', r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#9d7fff' }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
     );
   }
-
   return null;
 }
 
@@ -293,89 +263,32 @@ function ToolCallBlock({
   const [open, setOpen] = useState(false);
   return (
     <div
+      className='rounded-xl overflow-hidden'
       style={{
-        borderRadius: '12px',
         border: '1px solid rgba(255,184,48,0.2)',
         background: 'rgba(255,184,48,0.04)',
-        overflow: 'hidden',
       }}
     >
       <button
         onClick={() => setOpen((v) => !v)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '10px 14px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
+        className='w-full flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2.5 bg-transparent border-none cursor-pointer text-left'
       >
-        <Wrench
-          style={{
-            width: '13px',
-            height: '13px',
-            color: '#ffb830',
-            flexShrink: 0,
-          }}
-        />
-        <span
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '10px',
-            color: '#ffb830',
-            background: 'rgba(255,184,48,0.1)',
-            border: '1px solid rgba(255,184,48,0.2)',
-            padding: '1px 7px',
-            borderRadius: '4px',
-          }}
-        >
+        <Wrench className='w-3 h-3 text-[#ffb830] shrink-0' />
+        <span className='font-mono text-[9px] sm:text-[10px] text-[#ffb830] bg-[rgba(255,184,48,0.1)] border border-[rgba(255,184,48,0.2)] px-1.5 py-0.5 rounded'>
           tool
         </span>
-        <span
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '12px',
-            color: '#ffb830',
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <span className='font-mono text-[11px] sm:text-[12px] text-[#ffb830] flex-1 overflow-hidden text-ellipsis whitespace-nowrap'>
           {name}
         </span>
         {open ? (
-          <ChevronDown
-            style={{ width: '12px', height: '12px', color: '#4a4870' }}
-          />
+          <ChevronDown className='w-3 h-3 text-[#4a4870]' />
         ) : (
-          <ChevronRight
-            style={{ width: '12px', height: '12px', color: '#4a4870' }}
-          />
+          <ChevronRight className='w-3 h-3 text-[#4a4870]' />
         )}
       </button>
       {open && args && (
-        <div
-          style={{
-            borderTop: '1px solid rgba(255,184,48,0.1)',
-            maxHeight: '180px',
-            overflowY: 'auto',
-          }}
-        >
-          <pre
-            style={{
-              padding: '10px 14px',
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '11px',
-              color: 'rgba(255,184,48,0.6)',
-              margin: 0,
-              lineHeight: 1.6,
-            }}
-          >
+        <div className='border-t border-[rgba(255,184,48,0.1)] max-h-[160px] overflow-y-auto'>
+          <pre className='p-3 font-mono text-[10px] sm:text-[11px] text-[rgba(255,184,48,0.6)] m-0 leading-relaxed overflow-x-auto'>
             {JSON.stringify(args, null, 2)}
           </pre>
         </div>
@@ -394,93 +307,37 @@ function ToolResultBlock({
   const [open, setOpen] = useState(false);
   const chart = detectChart(result);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div className='flex flex-col gap-2 sm:gap-2.5'>
       <div
+        className='rounded-xl overflow-hidden'
         style={{
-          borderRadius: '12px',
           border: '1px solid rgba(0,255,135,0.15)',
           background: 'rgba(0,255,135,0.04)',
-          overflow: 'hidden',
         }}
       >
         <button
           onClick={() => setOpen((v) => !v)}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px 14px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-          }}
+          className='w-full flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2.5 bg-transparent border-none cursor-pointer text-left'
         >
           <div
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: '#00ff87',
-              boxShadow: '0 0 5px #00ff87',
-              flexShrink: 0,
-            }}
+            className='w-1.5 h-1.5 rounded-full shrink-0'
+            style={{ background: '#00ff87', boxShadow: '0 0 5px #00ff87' }}
           />
-          <span
-            style={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '10px',
-              color: '#00ff87',
-              background: 'rgba(0,255,135,0.1)',
-              border: '1px solid rgba(0,255,135,0.2)',
-              padding: '1px 7px',
-              borderRadius: '4px',
-            }}
-          >
+          <span className='font-mono text-[9px] sm:text-[10px] text-[#00ff87] bg-[rgba(0,255,135,0.1)] border border-[rgba(0,255,135,0.2)] px-1.5 py-0.5 rounded'>
             result
           </span>
-          <span
-            style={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '12px',
-              color: '#00ff87',
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className='font-mono text-[11px] sm:text-[12px] text-[#00ff87] flex-1 overflow-hidden text-ellipsis whitespace-nowrap'>
             {name}
           </span>
           {open ? (
-            <ChevronDown
-              style={{ width: '12px', height: '12px', color: '#4a4870' }}
-            />
+            <ChevronDown className='w-3 h-3 text-[#4a4870]' />
           ) : (
-            <ChevronRight
-              style={{ width: '12px', height: '12px', color: '#4a4870' }}
-            />
+            <ChevronRight className='w-3 h-3 text-[#4a4870]' />
           )}
         </button>
         {open && (
-          <div
-            style={{
-              borderTop: '1px solid rgba(0,255,135,0.1)',
-              maxHeight: '180px',
-              overflowY: 'auto',
-            }}
-          >
-            <pre
-              style={{
-                padding: '10px 14px',
-                fontFamily: '"JetBrains Mono", monospace',
-                fontSize: '11px',
-                color: 'rgba(0,255,135,0.55)',
-                margin: 0,
-                lineHeight: 1.6,
-              }}
-            >
+          <div className='border-t border-[rgba(0,255,135,0.1)] max-h-[160px] overflow-y-auto'>
+            <pre className='p-3 font-mono text-[10px] sm:text-[11px] text-[rgba(0,255,135,0.55)] m-0 leading-relaxed overflow-x-auto'>
               {JSON.stringify(result, null, 2)}
             </pre>
           </div>
@@ -488,11 +345,10 @@ function ToolResultBlock({
       </div>
       {chart && (
         <div
+          className='rounded-2xl p-3 sm:p-4'
           style={{
             background: 'rgba(13,13,26,0.8)',
             border: '1px solid rgba(124,92,252,0.12)',
-            borderRadius: '14px',
-            padding: '16px 18px',
           }}
         >
           <RenderedChart chart={chart} />
@@ -507,7 +363,7 @@ function renderInline(text: string): React.ReactNode {
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**'))
       return (
-        <strong key={i} style={{ fontWeight: 600, color: '#f0efff' }}>
+        <strong key={i} className='font-semibold text-[#f0efff]'>
           {part.slice(2, -2)}
         </strong>
       );
@@ -515,14 +371,7 @@ function renderInline(text: string): React.ReactNode {
       return (
         <code
           key={i}
-          style={{
-            padding: '2px 7px',
-            borderRadius: '5px',
-            background: 'rgba(124,92,252,0.12)',
-            color: '#9d7fff',
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '12px',
-          }}
+          className='px-1.5 py-0.5 rounded bg-[rgba(124,92,252,0.12)] text-[#9d7fff] font-mono text-[11px]'
         >
           {part.slice(1, -1)}
         </code>
@@ -534,26 +383,13 @@ function renderInline(text: string): React.ReactNode {
 function AiTextContent({ text }: { text: string }) {
   const lines = text.split('\n');
   return (
-    <div
-      style={{
-        color: '#d4d2f0',
-        fontSize: '15px',
-        lineHeight: 1.75,
-        fontFamily: '"DM Sans", sans-serif',
-      }}
-    >
+    <div className='text-[#d4d2f0] text-sm sm:text-[15px] leading-[1.75] font-sans'>
       {lines.map((line, i) => {
         if (line.startsWith('### '))
           return (
             <h3
               key={i}
-              style={{
-                fontFamily: '"Syne", sans-serif',
-                fontWeight: 700,
-                fontSize: '15px',
-                color: '#f0efff',
-                margin: '16px 0 4px',
-              }}
+              className='font-display font-bold text-sm sm:text-[15px] text-[#f0efff] mt-4 mb-1'
             >
               {line.slice(4)}
             </h3>
@@ -562,45 +398,21 @@ function AiTextContent({ text }: { text: string }) {
           return (
             <h2
               key={i}
-              style={{
-                fontFamily: '"Syne", sans-serif',
-                fontWeight: 800,
-                fontSize: '17px',
-                color: '#f0efff',
-                margin: '20px 0 6px',
-              }}
+              className='font-display font-extrabold text-base sm:text-[17px] text-[#f0efff] mt-5 mb-1.5'
             >
               {line.slice(3)}
             </h2>
           );
         if (line.startsWith('- ') || line.startsWith('• '))
           return (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                gap: '10px',
-                alignItems: 'flex-start',
-                margin: '4px 0',
-              }}
-            >
-              <span
-                style={{
-                  color: '#7c5cfc',
-                  marginTop: '8px',
-                  fontSize: '6px',
-                  flexShrink: 0,
-                }}
-              >
-                ◆
-              </span>
+            <div key={i} className='flex gap-2.5 items-start my-1'>
+              <span className='text-[#7c5cfc] mt-2 text-[6px] shrink-0'>◆</span>
               <span>{renderInline(line.slice(2))}</span>
             </div>
           );
-        if (line.trim() === '')
-          return <div key={i} style={{ height: '6px' }} />;
+        if (line.trim() === '') return <div key={i} className='h-1.5' />;
         return (
-          <p key={i} style={{ margin: '2px 0' }}>
+          <p key={i} className='my-0.5'>
             {renderInline(line)}
           </p>
         );
@@ -612,53 +424,30 @@ function AiTextContent({ text }: { text: string }) {
 export function ChatMessage({ message }: { message: StreamMessage }) {
   if (message.type === 'user') {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '12px',
-          padding: '16px 24px',
-          alignItems: 'flex-end',
-        }}
-      >
-        <div style={{ maxWidth: '72%' }}>
+      <div className='flex justify-end gap-2.5 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4 items-end'>
+        <div className='max-w-[80%] sm:max-w-[72%]'>
           <div
+            className='rounded-[16px_16px_4px_16px] px-3.5 sm:px-4 py-2.5 sm:py-3'
             style={{
               background:
                 'linear-gradient(135deg, rgba(124,92,252,0.25), rgba(0,212,255,0.15))',
               border: '1px solid rgba(124,92,252,0.3)',
-              borderRadius: '16px 16px 4px 16px',
-              padding: '12px 18px',
               boxShadow: '0 4px 20px rgba(124,92,252,0.1)',
             }}
           >
-            <p
-              style={{
-                color: '#f0efff',
-                fontSize: '15px',
-                lineHeight: 1.65,
-                fontFamily: '"DM Sans", sans-serif',
-                margin: 0,
-              }}
-            >
+            <p className='text-[#f0efff] text-sm sm:text-[15px] leading-[1.65] font-sans m-0'>
               {message.payload.text}
             </p>
           </div>
         </div>
         <div
+          className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
             background: 'rgba(124,92,252,0.12)',
             border: '1px solid rgba(124,92,252,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
           }}
         >
-          <User style={{ width: '14px', height: '14px', color: '#8b89b0' }} />
+          <User className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#8b89b0]' />
         </div>
       </div>
     );
@@ -666,23 +455,17 @@ export function ChatMessage({ message }: { message: StreamMessage }) {
 
   if (message.type === 'toolCall:start') {
     return (
-      <div style={{ display: 'flex', gap: '12px', padding: '10px 24px' }}>
+      <div className='flex gap-2.5 sm:gap-3 px-3 sm:px-6 py-2'>
         <div
+          className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
             background: 'rgba(255,184,48,0.1)',
             border: '1px solid rgba(255,184,48,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
           }}
         >
-          <Wrench style={{ width: '13px', height: '13px', color: '#ffb830' }} />
+          <Wrench className='w-3 h-3 text-[#ffb830]' />
         </div>
-        <div style={{ flex: 1, paddingTop: '4px' }}>
+        <div className='flex-1 pt-1'>
           <ToolCallBlock
             name={message.payload.name}
             args={message.payload.args}
@@ -694,31 +477,20 @@ export function ChatMessage({ message }: { message: StreamMessage }) {
 
   if (message.type === 'tool') {
     return (
-      <div style={{ display: 'flex', gap: '12px', padding: '10px 24px' }}>
+      <div className='flex gap-2.5 sm:gap-3 px-3 sm:px-6 py-2'>
         <div
+          className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
             background: 'rgba(0,255,135,0.08)',
             border: '1px solid rgba(0,255,135,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
           }}
         >
           <div
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#00ff87',
-              boxShadow: '0 0 6px #00ff87',
-            }}
+            className='w-2 h-2 rounded-full'
+            style={{ background: '#00ff87', boxShadow: '0 0 6px #00ff87' }}
           />
         </div>
-        <div style={{ flex: 1, paddingTop: '4px' }}>
+        <div className='flex-1 pt-1'>
           <ToolResultBlock
             name={message.payload.name}
             result={message.payload.result}
@@ -730,42 +502,25 @@ export function ChatMessage({ message }: { message: StreamMessage }) {
 
   if (message.type === 'error') {
     return (
-      <div style={{ display: 'flex', gap: '12px', padding: '16px 24px' }}>
+      <div className='flex gap-2.5 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4'>
         <div
+          className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
             background: 'rgba(255,59,92,0.1)',
             border: '1px solid rgba(255,59,92,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
           }}
         >
-          <AlertTriangle
-            style={{ width: '13px', height: '13px', color: '#ff3b5c' }}
-          />
+          <AlertTriangle className='w-3 h-3 text-[#ff3b5c]' />
         </div>
-        <div style={{ flex: 1, paddingTop: '4px' }}>
+        <div className='flex-1 pt-1'>
           <div
+            className='rounded-2xl p-3 sm:p-4'
             style={{
               background: 'rgba(255,59,92,0.07)',
               border: '1px solid rgba(255,59,92,0.2)',
-              borderRadius: '14px',
-              padding: '12px 16px',
             }}
           >
-            <p
-              style={{
-                color: '#ff3b5c',
-                fontSize: '14px',
-                lineHeight: 1.6,
-                fontFamily: '"DM Sans", sans-serif',
-                margin: 0,
-              }}
-            >
+            <p className='text-[#ff3b5c] text-sm leading-relaxed font-sans m-0'>
               {message.payload.text}
             </p>
           </div>
@@ -776,24 +531,18 @@ export function ChatMessage({ message }: { message: StreamMessage }) {
 
   if (message.type === 'ai') {
     return (
-      <div style={{ display: 'flex', gap: '12px', padding: '20px 24px' }}>
+      <div className='flex gap-2.5 sm:gap-3 px-3 sm:px-6 py-4 sm:py-5'>
         <div
+          className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
             background:
               'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
             border: '1px solid rgba(124,92,252,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
           }}
         >
-          <Cpu style={{ width: '14px', height: '14px', color: '#9d7fff' }} />
+          <Cpu className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#9d7fff]' />
         </div>
-        <div style={{ flex: 1, minWidth: 0, paddingTop: '4px' }}>
+        <div className='flex-1 min-w-0 pt-1'>
           <AiTextContent text={message.payload.text} />
         </div>
       </div>

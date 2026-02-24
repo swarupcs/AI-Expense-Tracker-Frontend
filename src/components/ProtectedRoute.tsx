@@ -9,56 +9,26 @@ export function ProtectedRoute() {
   if (isLoading) {
     return (
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          background: '#080810',
-          flexDirection: 'column',
-          gap: '20px',
-        }}
+        className='flex items-center justify-center h-screen flex-col gap-5'
+        style={{ background: '#080810' }}
       >
-        {/* Animated logo */}
-        <div style={{ position: 'relative' }}>
+        <div className='relative'>
           <div
+            className='w-14 h-14 rounded-2xl flex items-center justify-center'
             style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '18px',
               background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               boxShadow: '0 0 40px rgba(124,92,252,0.5)',
               animation: 'pulse 2s ease-in-out infinite',
             }}
           >
-            <Zap
-              style={{ width: '28px', height: '28px', color: '#fff' }}
-              strokeWidth={2.5}
-            />
+            <Zap className='w-7 h-7 text-white' strokeWidth={2.5} />
           </div>
-          {/* Ring */}
           <div
-            style={{
-              position: 'absolute',
-              inset: '-6px',
-              borderRadius: '22px',
-              border: '1px solid rgba(124,92,252,0.3)',
-              animation: 'ringPulse 2s ease-in-out infinite',
-            }}
+            className='absolute -inset-1.5 rounded-[20px] border border-[rgba(124,92,252,0.3)]'
+            style={{ animation: 'ringPulse 2s ease-in-out infinite' }}
           />
         </div>
-        <div
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '11px',
-            color: '#4a4870',
-            textTransform: 'uppercase',
-            letterSpacing: '0.2em',
-          }}
-        >
+        <div className='font-mono text-[11px] text-[#4a4870] uppercase tracking-[0.2em]'>
           Initializing…
         </div>
         <style>{`

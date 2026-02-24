@@ -11,6 +11,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const COLORS = [
   '#7c5cfc',
@@ -69,7 +71,7 @@ export default function InsightsPage() {
       border: '1px solid rgba(124,92,252,0.2)',
       borderRadius: '10px',
       fontFamily: '"JetBrains Mono", monospace',
-      fontSize: '12px',
+      fontSize: '11px',
       color: '#f0efff',
     },
   };
@@ -107,481 +109,286 @@ export default function InsightsPage() {
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        background: '#080810',
-      }}
+      className='flex flex-col h-full overflow-hidden'
+      style={{ background: '#080810' }}
     >
       {/* Header */}
       <div
+        className='shrink-0 px-4 sm:px-8 py-4 sm:py-6'
         style={{
           borderBottom: '1px solid rgba(124,92,252,0.1)',
           background: 'rgba(8,8,16,0.95)',
-          padding: '24px 32px',
-          flexShrink: 0,
           backdropFilter: 'blur(20px)',
         }}
       >
-        <h1
-          style={{
-            fontFamily: '"Syne", sans-serif',
-            fontSize: '26px',
-            fontWeight: 800,
-            color: '#f0efff',
-            letterSpacing: '-0.5px',
-            margin: 0,
-            marginBottom: '4px',
-          }}
-        >
+        <h1 className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight'>
           Insights
         </h1>
-        <p
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '11px',
-            color: '#4a4870',
-            margin: 0,
-          }}
-        >
+        <p className='font-mono text-[10px] sm:text-[11px] text-[#4a4870]'>
           AI-powered spending analysis · Last 6 months
         </p>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          padding: '28px 32px',
-        }}
-      >
-        {/* Summary cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '14px',
-            marginBottom: '24px',
-          }}
-        >
-          {summaryCards.map((card) => (
-            <div
-              key={card.label}
+      <ScrollArea className='flex-1'>
+        <div className='p-4 sm:p-8 space-y-4 sm:space-y-5'>
+          {/* Summary cards - 2x2 on mobile, 4 on desktop */}
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+            {summaryCards.map((card) => (
+              <Card
+                key={card.label}
+                className='relative overflow-hidden transition-all hover:shadow-[0_0_25px_var(--glow)] border-transparent'
+                style={
+                  {
+                    background: 'rgba(13,13,26,0.7)',
+                    border: `1px solid ${card.color}20`,
+                    backdropFilter: 'blur(20px)',
+                  } as React.CSSProperties
+                }
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.borderColor =
+                    `${card.color}40`;
+                  (e.currentTarget as HTMLElement).style.boxShadow =
+                    `0 0 25px ${card.glow}`;
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.borderColor =
+                    `${card.color}20`;
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                }}
+              >
+                <div
+                  className='absolute top-[-20px] right-[-20px] w-20 h-20 rounded-full pointer-events-none'
+                  style={{
+                    background: `radial-gradient(circle, ${card.glow}, transparent 70%)`,
+                  }}
+                />
+                <CardContent className='p-3 sm:p-5'>
+                  <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-wider mb-2'>
+                    {card.label}
+                  </p>
+                  {isLoading ? (
+                    <div className='h-7 rounded-lg bg-[rgba(124,92,252,0.08)] shimmer mb-1.5' />
+                  ) : (
+                    <p
+                      className='font-display text-lg sm:text-2xl font-extrabold tracking-tight mb-1.5 truncate'
+                      style={{
+                        color: card.color,
+                        textShadow: `0 0 20px ${card.glow}`,
+                      }}
+                    >
+                      {card.value}
+                    </p>
+                  )}
+                  <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870]'>
+                    {card.sub}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts - stacked on mobile, side by side on md+ */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            {/* Line chart */}
+            <Card
+              className='border-[rgba(124,92,252,0.12)]'
               style={{
                 background: 'rgba(13,13,26,0.7)',
-                border: `1px solid ${card.color}20`,
-                borderRadius: '14px',
-                padding: '20px',
                 backdropFilter: 'blur(20px)',
-                transition: 'all 0.2s',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  `${card.color}40`;
-                (e.currentTarget as HTMLElement).style.boxShadow =
-                  `0 0 25px ${card.glow}`;
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  `${card.color}20`;
-                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
               }}
             >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-20px',
-                  right: '-20px',
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: `radial-gradient(circle, ${card.glow}, transparent 70%)`,
-                  pointerEvents: 'none',
-                }}
-              />
-              <p
-                style={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: '10px',
-                  color: '#4a4870',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  margin: '0 0 10px',
-                }}
-              >
-                {card.label}
-              </p>
-              {isLoading ? (
-                <div
-                  style={{
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: 'rgba(124,92,252,0.08)',
-                    marginBottom: '8px',
-                  }}
-                  className='shimmer'
-                />
-              ) : (
-                <p
-                  style={{
-                    fontFamily: '"Syne", sans-serif',
-                    fontSize: '24px',
-                    fontWeight: 800,
-                    color: card.color,
-                    letterSpacing: '-0.5px',
-                    margin: '0 0 6px',
-                    textShadow: `0 0 20px ${card.glow}`,
-                  }}
-                >
-                  {card.value}
-                </p>
-              )}
-              <p
-                style={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: '10px',
-                  color: '#4a4870',
-                  margin: 0,
-                }}
-              >
-                {card.sub}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Charts */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
-            marginBottom: '20px',
-          }}
-        >
-          {/* Line chart */}
-          <div
-            style={{
-              background: 'rgba(13,13,26,0.7)',
-              border: '1px solid rgba(124,92,252,0.12)',
-              borderRadius: '16px',
-              padding: '24px',
-              backdropFilter: 'blur(20px)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '20px',
-              }}
-            >
-              <div
-                style={{
-                  width: '3px',
-                  height: '18px',
-                  borderRadius: '2px',
-                  background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: '#f0efff',
-                }}
-              >
-                Monthly Trend
-              </span>
-            </div>
-            {isLoading ? (
-              <div
-                style={{
-                  height: '220px',
-                  borderRadius: '10px',
-                  background: 'rgba(124,92,252,0.05)',
-                }}
-                className='shimmer'
-              />
-            ) : (
-              <ResponsiveContainer width='100%' height={220}>
-                <LineChart
-                  data={trendData}
-                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id='lineGrad' x1='0' y1='0' x2='0' y2='1'>
-                      <stop offset='0%' stopColor='#7c5cfc' stopOpacity={0.3} />
-                      <stop offset='100%' stopColor='#7c5cfc' stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray='3 3'
-                    stroke='rgba(124,92,252,0.08)'
-                  />
-                  <XAxis
-                    dataKey='month'
-                    tick={{
-                      fontSize: 11,
-                      fill: '#4a4870',
-                      fontFamily: '"JetBrains Mono", monospace',
+              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-bold'>
+                  <div
+                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    style={{
+                      background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
                     }}
-                    tickLine={false}
-                    axisLine={false}
                   />
-                  <YAxis
-                    tick={{
-                      fontSize: 11,
-                      fill: '#4a4870',
-                      fontFamily: '"JetBrains Mono", monospace',
-                    }}
-                    tickLine={false}
-                    axisLine={false}
+                  Monthly Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='px-2 sm:px-4 pb-4'>
+                {isLoading ? (
+                  <div
+                    className='h-[180px] sm:h-[220px] rounded-xl shimmer'
+                    style={{ background: 'rgba(124,92,252,0.05)' }}
                   />
-                  <Tooltip {...tooltipStyle} />
-                  <Line
-                    type='monotone'
-                    dataKey='amount'
-                    stroke='#7c5cfc'
-                    strokeWidth={2.5}
-                    dot={{
-                      fill: '#7c5cfc',
-                      r: 4,
-                      strokeWidth: 2,
-                      stroke: '#080810',
-                    }}
-                    activeDot={{ r: 6, fill: '#9d7fff', strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Pie chart */}
-          <div
-            style={{
-              background: 'rgba(13,13,26,0.7)',
-              border: '1px solid rgba(124,92,252,0.12)',
-              borderRadius: '16px',
-              padding: '24px',
-              backdropFilter: 'blur(20px)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '20px',
-              }}
-            >
-              <div
-                style={{
-                  width: '3px',
-                  height: '18px',
-                  borderRadius: '2px',
-                  background: 'linear-gradient(180deg, #ff2d78, #ffb830)',
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: '#f0efff',
-                }}
-              >
-                By Category
-              </span>
-            </div>
-            {isLoading ? (
-              <div
-                style={{
-                  height: '220px',
-                  borderRadius: '10px',
-                  background: 'rgba(124,92,252,0.05)',
-                }}
-                className='shimmer'
-              />
-            ) : pieData.length > 0 ? (
-              <ResponsiveContainer width='100%' height={220}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx='50%'
-                    cy='50%'
-                    innerRadius={60}
-                    outerRadius={90}
-                    dataKey='value'
-                    paddingAngle={2}
-                  >
-                    {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip {...tooltipStyle} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div
-                style={{
-                  height: '220px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#4a4870',
-                  fontSize: '14px',
-                  fontFamily: '"DM Sans", sans-serif',
-                }}
-              >
-                No data yet
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Category breakdown */}
-        {stats && stats.byCategory.length > 0 && (
-          <div
-            style={{
-              background: 'rgba(13,13,26,0.7)',
-              border: '1px solid rgba(124,92,252,0.12)',
-              borderRadius: '16px',
-              padding: '24px',
-              backdropFilter: 'blur(20px)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '20px',
-              }}
-            >
-              <div
-                style={{
-                  width: '3px',
-                  height: '18px',
-                  borderRadius: '2px',
-                  background: 'linear-gradient(180deg, #00ff87, #00d4ff)',
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: '#f0efff',
-                }}
-              >
-                Category Breakdown
-              </span>
-            </div>
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-            >
-              {stats.byCategory.map((cat, i) => {
-                const pct =
-                  stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
-                const color = COLORS[i % COLORS.length];
-                return (
-                  <div key={cat.category}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px',
-                      }}
+                ) : (
+                  <ResponsiveContainer width='100%' height={200}>
+                    <LineChart
+                      data={trendData}
+                      margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
+                      <CartesianGrid
+                        strokeDasharray='3 3'
+                        stroke='rgba(124,92,252,0.08)'
+                      />
+                      <XAxis
+                        dataKey='month'
+                        tick={{
+                          fontSize: 9,
+                          fill: '#4a4870',
+                          fontFamily: '"JetBrains Mono", monospace',
                         }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{
+                          fontSize: 9,
+                          fill: '#4a4870',
+                          fontFamily: '"JetBrains Mono", monospace',
+                        }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip {...tooltipStyle} />
+                      <Line
+                        type='monotone'
+                        dataKey='amount'
+                        stroke='#7c5cfc'
+                        strokeWidth={2.5}
+                        dot={{
+                          fill: '#7c5cfc',
+                          r: 3,
+                          strokeWidth: 2,
+                          stroke: '#080810',
+                        }}
+                        activeDot={{ r: 5, fill: '#9d7fff', strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Pie chart */}
+            <Card
+              className='border-[rgba(124,92,252,0.12)]'
+              style={{
+                background: 'rgba(13,13,26,0.7)',
+                backdropFilter: 'blur(20px)',
+              }}
+            >
+              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-bold'>
+                  <div
+                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    style={{
+                      background: 'linear-gradient(180deg, #ff2d78, #ffb830)',
+                    }}
+                  />
+                  By Category
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='px-2 sm:px-4 pb-4'>
+                {isLoading ? (
+                  <div
+                    className='h-[180px] sm:h-[220px] rounded-xl shimmer'
+                    style={{ background: 'rgba(124,92,252,0.05)' }}
+                  />
+                ) : pieData.length > 0 ? (
+                  <ResponsiveContainer width='100%' height={200}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx='50%'
+                        cy='50%'
+                        innerRadius={55}
+                        outerRadius={80}
+                        dataKey='value'
+                        paddingAngle={2}
+                      >
+                        {pieData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip {...tooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className='h-[200px] flex items-center justify-center text-[#4a4870] text-sm'>
+                    No data yet
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Category breakdown */}
+          {stats && stats.byCategory.length > 0 && (
+            <Card
+              className='border-[rgba(124,92,252,0.12)]'
+              style={{
+                background: 'rgba(13,13,26,0.7)',
+                backdropFilter: 'blur(20px)',
+              }}
+            >
+              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-bold'>
+                  <div
+                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    style={{
+                      background: 'linear-gradient(180deg, #00ff87, #00d4ff)',
+                    }}
+                  />
+                  Category Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='px-4 sm:px-6 pb-4 sm:pb-5 space-y-4 sm:space-y-5'>
+                {stats.byCategory.map((cat, i) => {
+                  const pct =
+                    stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
+                  const color = COLORS[i % COLORS.length];
+                  return (
+                    <div key={cat.category}>
+                      <div className='flex items-center justify-between mb-2'>
+                        <div className='flex items-center gap-2.5'>
+                          <div
+                            className='w-2 h-2 rounded-sm'
+                            style={{
+                              background: color,
+                              boxShadow: `0 0 8px ${color}70`,
+                            }}
+                          />
+                          <span className='font-sans text-sm text-[#d4d2f0]'>
+                            {cat.category}
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-2 sm:gap-3'>
+                          <span className='font-mono text-[10px] sm:text-[11px] text-[#4a4870]'>
+                            {Math.round(pct)}%
+                          </span>
+                          <span
+                            className='font-display text-sm font-bold'
+                            style={{ color }}
+                          >
+                            ₹{Math.round(cat.amount).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className='h-1 rounded-full overflow-hidden'
+                        style={{ background: 'rgba(124,92,252,0.08)' }}
                       >
                         <div
+                          className='h-full rounded-full transition-all duration-700'
                           style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '2px',
-                            background: color,
-                            boxShadow: `0 0 8px ${color}70`,
+                            width: `${pct}%`,
+                            background: `linear-gradient(90deg, ${color}, ${color}90)`,
+                            boxShadow: `0 0 8px ${color}50`,
                           }}
                         />
-                        <span
-                          style={{
-                            fontFamily: '"DM Sans", sans-serif',
-                            fontSize: '14px',
-                            color: '#d4d2f0',
-                          }}
-                        >
-                          {cat.category}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: '11px',
-                            color: '#4a4870',
-                          }}
-                        >
-                          {Math.round(pct)}%
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: '"Syne", sans-serif',
-                            fontSize: '14px',
-                            fontWeight: 700,
-                            color,
-                          }}
-                        >
-                          ₹{Math.round(cat.amount).toLocaleString('en-IN')}
-                        </span>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        height: '4px',
-                        borderRadius: '2px',
-                        background: 'rgba(124,92,252,0.08)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: '100%',
-                          borderRadius: '2px',
-                          width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${color}, ${color}90)`,
-                          boxShadow: `0 0 8px ${color}50`,
-                          transition: 'width 0.8s ease-out',
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }

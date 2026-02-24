@@ -54,7 +54,9 @@ export default function SettingsPage() {
       setPwSuccess(true);
       setTimeout(() => setPwSuccess(false), 3000);
     } catch (err: unknown) {
-      setPwError(err instanceof Error ? err.message : 'Failed to change password');
+      setPwError(
+        err instanceof Error ? err.message : 'Failed to change password',
+      );
     }
   };
 
@@ -77,79 +79,105 @@ export default function SettingsPage() {
   ] as const;
 
   return (
-    <div className='flex flex-col h-full bg-[--background]'>
+    <div className='flex flex-col h-full' style={{ background: '#080810' }}>
       {/* Header */}
-      <div className='shrink-0 border-b border-[#1c1c22] bg-[#0a0a0c] px-8 py-6'>
-        <h1 className='font-display text-2xl font-bold text-[--foreground]'>
+      <div
+        className='shrink-0 px-4 sm:px-8 py-4 sm:py-6'
+        style={{
+          borderBottom: '1px solid rgba(124,92,252,0.1)',
+          background: 'rgba(8,8,16,0.95)',
+          backdropFilter: 'blur(20px)',
+        }}
+      >
+        <h1 className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight'>
           Settings
         </h1>
-        <p className='text-sm text-[--foreground-secondary] mt-0.5 font-mono'>
+        <p className='font-mono text-[10px] sm:text-[11px] text-[#4a4870]'>
           Preferences &amp; account
         </p>
       </div>
 
       <ScrollArea className='flex-1'>
-        <div className='px-8 py-6 space-y-6 max-w-2xl'>
+        <div className='px-4 sm:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5 max-w-2xl'>
           {/* Account card */}
-          <Card className='bg-[#0f0f12] border-[#1c1c22]'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-mono text-[--foreground-secondary] uppercase tracking-widest font-normal flex items-center gap-2'>
-                <User className='h-4 w-4 text-[--primary]' /> Account
+          <Card
+            className='border-[rgba(124,92,252,0.12)]'
+            style={{ background: 'rgba(13,13,26,0.8)' }}
+          >
+            <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
+              <CardTitle className='text-[10px] sm:text-[11px] font-mono text-[#4a4870] uppercase tracking-widest font-normal flex items-center gap-2'>
+                <User className='h-3.5 w-3.5 text-[#7c5cfc]' /> Account
               </CardTitle>
             </CardHeader>
-            <Separator className='bg-[#1c1c22]' />
-            <CardContent className='pt-5 space-y-3'>
+            <Separator className='bg-[rgba(124,92,252,0.1)]' />
+            <CardContent className='pt-4 sm:pt-5 px-4 sm:px-6 pb-4 sm:pb-5 space-y-3'>
               {user && (
-                <div className='flex items-center gap-3 p-3 rounded-lg bg-[#111114]'>
+                <div
+                  className='flex items-center gap-3 p-3 rounded-xl'
+                  style={{ background: 'rgba(8,8,16,0.6)' }}
+                >
                   <Avatar className='w-10 h-10 rounded-xl shrink-0'>
-                    <AvatarFallback className='rounded-xl bg-[--primary]/20 border border-[--primary]/30 text-[--primary] font-bold'>
+                    <AvatarFallback
+                      className='rounded-xl font-bold text-[#9d7fff]'
+                      style={{
+                        background: 'rgba(124,92,252,0.2)',
+                        border: '1px solid rgba(124,92,252,0.3)',
+                      }}
+                    >
                       {user.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className='min-w-0 flex-1'>
-                    <p className='text-sm font-medium text-[--foreground] truncate'>
+                    <p className='font-sans text-sm font-semibold text-[#f0efff] truncate'>
                       {user.name}
                     </p>
-                    <p className='text-xs text-[--foreground-secondary] truncate font-mono'>
+                    <p className='font-mono text-[10px] text-[#4a4870] truncate'>
                       {user.email}
                     </p>
                   </div>
                   <Badge
-                    variant='outline'
-                    className='border-green-900/40 bg-[#0f1a10] text-green-400 text-[9px] font-mono shrink-0'
+                    className='shrink-0 font-mono text-[9px] border-0'
+                    style={{
+                      background: 'rgba(0,255,135,0.1)',
+                      color: '#00ff87',
+                    }}
                   >
                     {user.role}
                   </Badge>
                 </div>
               )}
 
-              <div className='grid grid-cols-2 gap-3'>
-                <div className='p-3 rounded-lg bg-[#111114]'>
-                  <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest mb-1'>
-                    Name
-                  </p>
-                  <p className='text-sm text-[--foreground]'>
-                    {user?.name ?? '—'}
-                  </p>
-                </div>
-                <div className='p-3 rounded-lg bg-[#111114]'>
-                  <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest mb-1'>
-                    Email
-                  </p>
-                  <p className='text-sm text-[--foreground] truncate'>
-                    {user?.email ?? '—'}
-                  </p>
-                </div>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                {[
+                  { label: 'Name', value: user?.name ?? '—' },
+                  { label: 'Email', value: user?.email ?? '—' },
+                ].map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className='p-3 rounded-xl'
+                    style={{ background: 'rgba(8,8,16,0.6)' }}
+                  >
+                    <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-widest mb-1'>
+                      {label}
+                    </p>
+                    <p className='font-sans text-sm text-[#f0efff] truncate'>
+                      {value}
+                    </p>
+                  </div>
+                ))}
               </div>
 
               {user?._count && (
-                <div className='p-3 rounded-lg bg-[#111114] flex items-center justify-between'>
-                  <p className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
+                <div
+                  className='flex items-center justify-between p-3 rounded-xl'
+                  style={{ background: 'rgba(8,8,16,0.6)' }}
+                >
+                  <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-widest'>
                     Total Expenses
                   </p>
                   <Badge
-                    variant='outline'
-                    className='border-[#1c1c22] bg-[#0a0a0c] text-[--foreground] font-mono text-xs'
+                    className='font-mono text-xs border-[rgba(124,92,252,0.2)]'
+                    style={{ background: 'rgba(8,8,16,0.8)', color: '#f0efff' }}
                   >
                     {user._count.expenses} records
                   </Badge>
@@ -159,36 +187,45 @@ export default function SettingsPage() {
               <Button
                 variant='outline'
                 onClick={() => signOut()}
-                className='w-full gap-2 border-red-900/40 bg-red-950/20 text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-900/60'
+                className='w-full gap-2 border-red-900/40 text-red-400 hover:bg-red-900/20 hover:text-red-300'
+                style={{ background: 'rgba(255,59,92,0.05)' }}
               >
-                <LogOut className='h-4 w-4' />
-                Sign Out
+                <LogOut className='h-4 w-4' /> Sign Out
               </Button>
             </CardContent>
           </Card>
 
           {/* Change password card */}
-          <Card className='bg-[#0f0f12] border-[#1c1c22]'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-mono text-[--foreground-secondary] uppercase tracking-widest font-normal flex items-center gap-2'>
-                <Lock className='h-4 w-4 text-[--primary]' /> Change Password
+          <Card
+            className='border-[rgba(124,92,252,0.12)]'
+            style={{ background: 'rgba(13,13,26,0.8)' }}
+          >
+            <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
+              <CardTitle className='text-[10px] sm:text-[11px] font-mono text-[#4a4870] uppercase tracking-widest font-normal flex items-center gap-2'>
+                <Lock className='h-3.5 w-3.5 text-[#7c5cfc]' /> Change Password
               </CardTitle>
-              <CardDescription className='text-[--foreground-secondary] text-xs font-mono'>
+              <CardDescription className='text-[#4a4870] text-xs font-mono'>
                 Must be at least 8 characters
               </CardDescription>
             </CardHeader>
-            <Separator className='bg-[#1c1c22]' />
-            <CardContent className='pt-5'>
+            <Separator className='bg-[rgba(124,92,252,0.1)]' />
+            <CardContent className='pt-4 sm:pt-5 px-4 sm:px-6 pb-4 sm:pb-5'>
               {pwError && (
-                <Alert className='mb-4 border-red-900/40 bg-red-950/20'>
+                <Alert
+                  className='mb-4 border-red-900/40'
+                  style={{ background: 'rgba(255,59,92,0.08)' }}
+                >
                   <AlertDescription className='text-red-400 text-sm'>
                     {pwError}
                   </AlertDescription>
                 </Alert>
               )}
               {pwSuccess && (
-                <Alert className='mb-4 border-green-900/40 bg-green-950/10'>
-                  <AlertDescription className='text-green-400 text-sm flex items-center gap-2'>
+                <Alert
+                  className='mb-4 border-green-900/40'
+                  style={{ background: 'rgba(0,255,135,0.06)' }}
+                >
+                  <AlertDescription className='text-[#00ff87] text-sm flex items-center gap-2'>
                     <Check className='h-4 w-4' /> Password updated successfully!
                   </AlertDescription>
                 </Alert>
@@ -202,7 +239,7 @@ export default function SettingsPage() {
                   ] as const
                 ).map(({ field, label }) => (
                   <div key={field} className='space-y-2'>
-                    <Label className='text-[10px] font-mono text-[--foreground-secondary] uppercase tracking-widest'>
+                    <Label className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-widest'>
                       {label}
                     </Label>
                     <Input
@@ -213,14 +250,18 @@ export default function SettingsPage() {
                       }
                       placeholder='••••••••'
                       required
-                      className='bg-[#111114] border-[#1c1c22] text-[--foreground] placeholder:text-[--foreground-secondary]/50 focus-visible:ring-[--primary]/30'
+                      className='border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.4)]'
+                      style={{ background: 'rgba(8,8,16,0.6)' }}
                     />
                   </div>
                 ))}
                 <Button
                   type='submit'
                   disabled={isChangingPw}
-                  className='w-full gap-2 bg-[--primary] text-[--primary-foreground] hover:bg-[--primary]/90 disabled:opacity-50 mt-2'
+                  className='w-full gap-2 text-white font-display font-bold mt-1'
+                  style={{
+                    background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+                  }}
                 >
                   {isChangingPw ? (
                     <Loader2 className='h-4 w-4 animate-spin' />
@@ -234,39 +275,47 @@ export default function SettingsPage() {
           </Card>
 
           {/* Notifications card */}
-          <Card className='bg-[#0f0f12] border-[#1c1c22]'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-mono text-[--foreground-secondary] uppercase tracking-widest font-normal flex items-center gap-2'>
-                <Bell className='h-4 w-4 text-[--primary]' /> Notifications
+          <Card
+            className='border-[rgba(124,92,252,0.12)]'
+            style={{ background: 'rgba(13,13,26,0.8)' }}
+          >
+            <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
+              <CardTitle className='text-[10px] sm:text-[11px] font-mono text-[#4a4870] uppercase tracking-widest font-normal flex items-center gap-2'>
+                <Bell className='h-3.5 w-3.5 text-[#7c5cfc]' /> Notifications
               </CardTitle>
             </CardHeader>
-            <Separator className='bg-[#1c1c22]' />
-            <CardContent className='pt-5 space-y-3'>
+            <Separator className='bg-[rgba(124,92,252,0.1)]' />
+            <CardContent className='pt-4 sm:pt-5 px-4 sm:px-6 pb-4 sm:pb-5 space-y-3'>
               {notificationItems.map((item) => (
                 <div
                   key={item.id}
-                  className='flex items-center justify-between p-3 rounded-lg bg-[#111114]'
+                  className='flex items-center justify-between p-3 rounded-xl'
+                  style={{ background: 'rgba(8,8,16,0.6)' }}
                 >
-                  <div className='space-y-0.5'>
-                    <p className='text-sm text-[--foreground]'>{item.label}</p>
-                    <p className='text-xs text-[--foreground-secondary]'>
+                  <div className='space-y-0.5 mr-4'>
+                    <p className='font-sans text-sm text-[#f0efff]'>
+                      {item.label}
+                    </p>
+                    <p className='font-sans text-xs text-[#4a4870]'>
                       {item.desc}
                     </p>
                   </div>
                   <Switch
                     checked={settings[item.id]}
                     onCheckedChange={() => toggle(item.id)}
-                    className='data-[state=checked]:bg-[--primary]'
+                    className='data-[state=checked]:bg-[#7c5cfc] shrink-0'
                   />
                 </div>
               ))}
-
               <Button
                 onClick={() => {
                   setSettingsSaved(true);
                   setTimeout(() => setSettingsSaved(false), 2000);
                 }}
-                className='w-full gap-2 bg-[--primary] text-[--primary-foreground] hover:bg-[--primary]/90 mt-2'
+                className='w-full gap-2 text-white font-display font-bold'
+                style={{
+                  background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+                }}
               >
                 {settingsSaved ? (
                   <>

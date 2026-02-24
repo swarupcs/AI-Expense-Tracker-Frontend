@@ -28,7 +28,15 @@ function AppShell() {
       }}
     >
       <Sidebar />
-      <main style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      {/* Main content: on mobile, add top padding for fixed header + bottom padding for bottom nav */}
+      <main
+        className='flex-1 overflow-hidden relative md:pt-0 md:pb-0'
+        style={{
+          // CSS variables make it easy to adjust header/bottomnav heights in one place
+          paddingTop: 'var(--mobile-header-height, 56px)',
+          paddingBottom: 'var(--mobile-bottomnav-height, 64px)',
+        }}
+      >
         <div
           style={{
             position: 'absolute',

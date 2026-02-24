@@ -8,6 +8,10 @@
 :root {
   --radius: 0.5rem;
 
+  /* ── Mobile Layout ── */
+  --mobile-header-height:     56px;
+  --mobile-bottomnav-height:  64px;
+
   /* ── Obsidian Core ── */
   --background:           #080810;
   --surface-1:            #0d0d1a;
@@ -152,6 +156,20 @@
   }
 }
 
+/* ─── Safe area for mobile ── */
+.safe-area-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* ─── Hide scrollbar utility ── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ─── Noise texture overlay ── */
 body::before {
   content: '';
@@ -202,29 +220,6 @@ body::before {
 .card-glass:hover {
   border-color: rgba(124, 92, 252, 0.28);
   box-shadow: 0 4px 40px rgba(124, 92, 252, 0.08);
-}
-
-/* ─── Animated border ── */
-.border-animated {
-  position: relative;
-}
-.border-animated::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, #7c5cfc, #00d4ff, #7c5cfc);
-  background-size: 200% 200%;
-  animation: borderRotate 4s linear infinite;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.border-animated:hover::before { opacity: 1; }
-
-@keyframes borderRotate {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
 }
 
 /* ─── Pulse dot ── */
@@ -284,13 +279,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-left: 1px;
 }
 
-/* ─── Number counter animation ── */
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.count-up { animation: countUp 0.5s ease-out forwards; }
-
 /* ─── Fade in up ── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
@@ -303,3 +291,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .delay-200 { animation-delay: 0.2s; opacity: 0; }
 .delay-300 { animation-delay: 0.3s; opacity: 0; }
 .delay-400 { animation-delay: 0.4s; opacity: 0; }
+
+/* ─── Touch targets: ensure minimum 44px on mobile ── */
+@media (max-width: 768px) {
+  button, a[role="button"] {
+    min-height: 36px;
+  }
+}

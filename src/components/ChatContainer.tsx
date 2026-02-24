@@ -12,6 +12,17 @@ import {
   Zap,
 } from 'lucide-react';
 import { streamChat, chatApi } from '@/api/chat.api';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const SUGGESTIONS = [
   {
@@ -36,8 +47,15 @@ export function ChatContainer() {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Cancel any in-flight stream when the component unmounts
+  useEffect(() => {
+    return () => {
+      cancelRef.current?.();
+    };
+  }, []);
+
   const addMessage = (msg: Omit<StreamMessage, 'id'>) => {
-    const id = `${threadId}-${messages.length}-${crypto.randomUUID()}`;
+    const id = `${threadId}-${crypto.randomUUID()}`;
     setMessages((prev) => [...prev, { ...msg, id } as StreamMessage]);
   };
 
@@ -99,176 +117,90 @@ export function ChatContainer() {
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        background: '#080810',
-        position: 'relative',
-      }}
+      className='flex flex-col h-full overflow-hidden'
+      style={{ background: '#080810' }}
     >
       {/* Header */}
       <div
+        className='shrink-0 px-3 sm:px-6 py-3 sm:py-4'
         style={{
           borderBottom: '1px solid rgba(124,92,252,0.1)',
           background: 'rgba(8,8,16,0.95)',
-          padding: '18px 24px',
-          flexShrink: 0,
           backdropFilter: 'blur(20px)',
         }}
       >
-        <div
-          style={{
-            maxWidth: '760px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className='max-w-[760px] mx-auto flex items-center justify-between'>
+          <div className='flex items-center gap-2 sm:gap-3.5'>
             <div
+              className='w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center'
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
                 background:
                   'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
                 border: '1px solid rgba(124,92,252,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 boxShadow: '0 0 20px rgba(124,92,252,0.2)',
               }}
             >
-              <Cpu
-                style={{ width: '18px', height: '18px', color: '#9d7fff' }}
-              />
+              <Cpu className='w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#9d7fff]' />
             </div>
             <div>
-              <div
-                style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: '#f0efff',
-                }}
-              >
+              <div className='font-display text-sm sm:text-base font-bold text-[#f0efff]'>
                 Finance Assistant
               </div>
-              <div
-                style={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: '10px',
-                  color: '#4a4870',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                }}
-              >
+              <div className='font-mono text-[9px] text-[#4a4870] tracking-widest uppercase hidden sm:block'>
                 AI-Powered Insights
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className='flex items-center gap-2'>
             {messages.length > 0 && !isStreaming && (
-              <button
+              <Button
+                variant='ghost'
+                size='icon'
                 onClick={() => setShowClearConfirm(true)}
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '8px',
-                  background: 'transparent',
-                  border: '1px solid transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: '#4a4870',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    'rgba(255,59,92,0.1)';
-                  (e.currentTarget as HTMLElement).style.borderColor =
-                    'rgba(255,59,92,0.2)';
-                  (e.currentTarget as HTMLElement).style.color = '#ff3b5c';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    'transparent';
-                  (e.currentTarget as HTMLElement).style.borderColor =
-                    'transparent';
-                  (e.currentTarget as HTMLElement).style.color = '#4a4870';
-                }}
+                className='w-8 h-8 sm:w-[34px] sm:h-[34px] rounded-lg hover:bg-[rgba(255,59,92,0.1)] hover:border-[rgba(255,59,92,0.2)] hover:text-[#ff3b5c] text-[#4a4870] border border-transparent transition-all'
               >
-                <Trash2 style={{ width: '15px', height: '15px' }} />
-              </button>
+                <Trash2 className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
+              </Button>
             )}
             {isStreaming ? (
               <div
+                className='flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full'
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '6px 14px',
                   background: 'rgba(124,92,252,0.1)',
                   border: '1px solid rgba(124,92,252,0.25)',
-                  borderRadius: '20px',
                 }}
               >
                 {[0, 150, 300].map((delay) => (
                   <div
                     key={delay}
+                    className='w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full'
                     style={{
-                      width: '5px',
-                      height: '5px',
-                      borderRadius: '50%',
                       background: '#9d7fff',
                       animation: `bounce 1s ${delay}ms ease-in-out infinite`,
                     }}
                   />
                 ))}
-                <span
-                  style={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#9d7fff',
-                    marginLeft: '2px',
-                  }}
-                >
+                <span className='font-mono text-[9px] sm:text-[10px] text-[#9d7fff] ml-0.5'>
                   Thinking
                 </span>
               </div>
             ) : (
               <div
+                className='flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full'
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  padding: '6px 12px',
                   background: 'rgba(0,255,135,0.07)',
                   border: '1px solid rgba(0,255,135,0.2)',
-                  borderRadius: '20px',
                 }}
               >
                 <div
+                  className='w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full'
                   style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
                     background: '#00ff87',
                     boxShadow: '0 0 6px #00ff87',
                   }}
                 />
-                <span
-                  style={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '10px',
-                    color: '#00ff87',
-                  }}
-                >
+                <span className='font-mono text-[9px] sm:text-[10px] text-[#00ff87]'>
                   Ready
                 </span>
               </div>
@@ -278,201 +210,90 @@ export function ChatContainer() {
       </div>
 
       {/* Clear confirm modal */}
-      {showClearConfirm && (
-        <div
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent
+          className='border-[rgba(255,59,92,0.3)] max-w-[90vw] sm:max-w-md'
           style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
+            background: '#0d0d1a',
+            boxShadow: '0 0 60px rgba(255,59,92,0.1)',
           }}
         >
-          <div
-            style={{
-              background: '#0d0d1a',
-              border: '1px solid rgba(255,59,92,0.3)',
-              borderRadius: '20px',
-              padding: '32px',
-              maxWidth: '380px',
-              width: '90%',
-              boxShadow: '0 0 60px rgba(255,59,92,0.1)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: '"Syne", sans-serif',
-                fontSize: '20px',
-                fontWeight: 700,
-                color: '#f0efff',
-                marginBottom: '10px',
-              }}
-            >
+          <AlertDialogHeader>
+            <AlertDialogTitle className='font-display text-[#f0efff]'>
               Clear conversation?
-            </div>
-            <p
-              style={{
-                color: '#8b89b0',
-                fontSize: '14px',
-                marginBottom: '24px',
-                lineHeight: 1.6,
-              }}
-            >
+            </AlertDialogTitle>
+            <AlertDialogDescription className='text-[#8b89b0]'>
               All messages in this thread will be permanently deleted.
-            </p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '10px',
-                  color: '#8b89b0',
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClearHistory}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: 'rgba(255,59,92,0.15)',
-                  border: '1px solid rgba(255,59,92,0.3)',
-                  borderRadius: '10px',
-                  color: '#ff3b5c',
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-              >
-                Delete All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='border-[rgba(255,255,255,0.1)] text-[#8b89b0]'
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearHistory}
+              className='border-[rgba(255,59,92,0.3)] text-[#ff3b5c] font-display font-semibold'
+              style={{ background: 'rgba(255,59,92,0.15)' }}
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Messages */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0' }}>
-        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+      <div className='flex-1 min-h-0 overflow-y-auto'>
+        <div className='max-w-[760px] mx-auto'>
           {messages.length === 0 ? (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '65vh',
-                padding: '40px 24px',
-                textAlign: 'center',
-              }}
-            >
+            <div className='flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center'>
               <div
+                className='w-14 h-14 sm:w-[72px] sm:h-[72px] rounded-2xl flex items-center justify-center mb-5 sm:mb-6'
                 style={{
-                  width: '72px',
-                  height: '72px',
-                  borderRadius: '20px',
                   background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '24px',
                   boxShadow: '0 0 40px rgba(124,92,252,0.4)',
                 }}
               >
                 <Zap
-                  style={{ width: '32px', height: '32px', color: '#fff' }}
+                  className='w-7 h-7 sm:w-8 sm:h-8 text-white'
                   strokeWidth={2}
                 />
               </div>
-              <h2
-                style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: '30px',
-                  fontWeight: 800,
-                  color: '#f0efff',
-                  letterSpacing: '-0.5px',
-                  marginBottom: '10px',
-                }}
-              >
+              <h2 className='font-display text-2xl sm:text-3xl font-extrabold text-[#f0efff] tracking-tight mb-2 sm:mb-3'>
                 What can I help with?
               </h2>
-              <p
-                style={{
-                  color: '#4a4870',
-                  fontSize: '15px',
-                  maxWidth: '380px',
-                  lineHeight: 1.7,
-                  marginBottom: '40px',
-                }}
-              >
+              <p className='text-[#4a4870] text-sm sm:text-base max-w-sm leading-relaxed mb-8 sm:mb-10'>
                 Ask about spending, add expenses, get charts, or get
                 personalized financial advice.
               </p>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '10px',
-                  width: '100%',
-                  maxWidth: '520px',
-                }}
-              >
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 w-full max-w-[520px]'>
                 {SUGGESTIONS.map(({ icon: Icon, text, color }) => (
                   <button
                     key={text}
                     onClick={() => handleSubmit(text)}
+                    className='flex items-start gap-3 p-3 sm:p-4 rounded-2xl text-left transition-all text-[#8b89b0] hover:text-[#f0efff] font-sans text-sm leading-relaxed'
                     style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                      padding: '16px',
                       background: 'rgba(13,13,26,0.8)',
-                      border: `1px solid rgba(124,92,252,0.12)`,
-                      borderRadius: '14px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s',
-                      color: '#8b89b0',
-                      fontFamily: '"DM Sans", sans-serif',
-                      fontSize: '13px',
-                      lineHeight: 1.5,
+                      border: '1px solid rgba(124,92,252,0.12)',
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLElement).style.borderColor =
                         `${color}40`;
                       (e.currentTarget as HTMLElement).style.background =
                         `${color}08`;
-                      (e.currentTarget as HTMLElement).style.color = '#f0efff';
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLElement).style.borderColor =
                         'rgba(124,92,252,0.12)';
                       (e.currentTarget as HTMLElement).style.background =
                         'rgba(13,13,26,0.8)';
-                      (e.currentTarget as HTMLElement).style.color = '#8b89b0';
                     }}
                   >
                     <Icon
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        color,
-                        flexShrink: 0,
-                        marginTop: '2px',
-                      }}
+                      className='w-4 h-4 shrink-0 mt-0.5'
+                      style={{ color }}
                     />
                     <span>{text}</span>
                   </button>
@@ -485,46 +306,23 @@ export function ChatContainer() {
                 <ChatMessage key={msg.id} message={msg} />
               ))}
               {isStreaming && (
-                <div
-                  style={{ display: 'flex', gap: '14px', padding: '20px 24px' }}
-                >
+                <div className='flex gap-3 sm:gap-3.5 px-3 sm:px-6 py-4 sm:py-5'>
                   <div
+                    className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '10px',
                       background:
                         'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
                       border: '1px solid rgba(124,92,252,0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
                     }}
                   >
-                    <Cpu
-                      style={{
-                        width: '14px',
-                        height: '14px',
-                        color: '#9d7fff',
-                      }}
-                    />
+                    <Cpu className='w-3.5 h-3.5 text-[#9d7fff]' />
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      paddingTop: '6px',
-                    }}
-                  >
+                  <div className='flex items-center gap-1.5 pt-1.5'>
                     {[0, 150, 300].map((delay) => (
                       <div
                         key={delay}
+                        className='w-1.5 h-1.5 rounded-full'
                         style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
                           background: '#9d7fff',
                           animation: `bounce 1s ${delay}ms ease-in-out infinite`,
                         }}
@@ -541,10 +339,10 @@ export function ChatContainer() {
 
       {/* Input */}
       <div
+        className='shrink-0'
         style={{
           borderTop: '1px solid rgba(124,92,252,0.1)',
           background: 'rgba(8,8,16,0.95)',
-          flexShrink: 0,
           backdropFilter: 'blur(20px)',
         }}
       >
@@ -552,7 +350,6 @@ export function ChatContainer() {
       </div>
 
       <style>{`
-
         @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
       `}</style>
     </div>
