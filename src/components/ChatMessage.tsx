@@ -21,6 +21,11 @@ import {
   Line,
   Tooltip,
 } from 'recharts';
+import type { TooltipProps } from 'recharts';
+import type {
+  NameType,
+  ValueType,
+} from 'recharts/types/component/DefaultTooltipContent';
 import type { StreamMessage } from '@/types/StreamMessage.types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -166,7 +171,7 @@ function TooltipBox({ label, value, color }: TipPayload) {
   );
 }
 
-// Fixed-position overlay for touch — never clipped by any parent
+// Fixed-position overlay for touch — never clipped by any parent overflow
 function FixedTooltip({
   label,
   value,
@@ -200,19 +205,8 @@ function FixedTooltip({
 }
 
 // ─── useChartTooltip ──────────────────────────────────────────────────────────
-// Single hook that manages BOTH hover (desktop) and touch (mobile) tooltips.
-//
-// KEY INSIGHT: we use a ref (lastInteraction) — not state — to track whether
-// the most recent interaction was touch or mouse. Refs mutate synchronously
-// without causing re-renders, so when the Recharts tooltip content function
-// reads the ref, it always sees the current value. This prevents the
-// "both tooltips render at once" bug caused by stale state.
-//
-// Flow:
-//   touch  → set lastInteraction.current = 'touch'  → show FixedTooltip
-//   mouse  → set lastInteraction.current = 'mouse'  → Recharts tooltip renders
-//   Recharts content reads ref → if 'touch', returns null immediately
-//
+// Uses a ref (not state) for lastInteraction so the Recharts content callback
+// always reads the current value synchronously — no stale closure, no double render.
 function useChartTooltip(
   data: Array<{
     label?: string;
@@ -242,70 +236,56 @@ function useChartTooltip(
     timerRef.current = setTimeout(() => setTouchTip(null), ms);
   }, []);
 
-  const onTouchStart = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
-      // Mark as touch BEFORE anything else so the Recharts content fn sees it
-      lastInteraction.current = 'touch';
-      e.stopPropagation();
-      if (timerRef.current) clearTimeout(timerRef.current);
-
-      const touch = e.touches[0] ?? e.changedTouches[0];
-      if (!touch || !containerRef.current || !data.length) return;
-
+  const getIndex = useCallback(
+    (clientX: number) => {
+      if (!containerRef.current || !data.length) return -1;
       const rect = containerRef.current.getBoundingClientRect();
-      const idx = Math.max(
+      return Math.max(
         0,
         Math.min(
-          Math.floor(((touch.clientX - rect.left) / rect.width) * data.length),
+          Math.floor(((clientX - rect.left) / rect.width) * data.length),
           data.length - 1,
         ),
       );
+    },
+    [data],
+  );
+
+  const showFromIndex = useCallback(
+    (idx: number, clientX: number, clientY: number) => {
       const item = data[idx];
       if (!item) return;
-
       setTouchTip({
         label: item.label ?? item.month ?? '',
         value: item.amount ?? item.value ?? 0,
         color: item.color ?? accentColor,
-        x: touch.clientX,
-        y: touch.clientY,
+        x: clientX,
+        y: clientY,
       });
       hideAfter();
     },
     [data, accentColor, hideAfter],
   );
 
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      lastInteraction.current = 'touch'; // synchronous — read by rechartsContent before any re-render
+      e.stopPropagation();
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const t = e.touches[0] ?? e.changedTouches[0];
+      if (t) showFromIndex(getIndex(t.clientX), t.clientX, t.clientY);
+    },
+    [getIndex, showFromIndex],
+  );
+
   const onTouchMove = useCallback(
     (e: React.TouchEvent<HTMLDivElement>) => {
       e.stopPropagation();
       if (timerRef.current) clearTimeout(timerRef.current);
-      const touch = e.touches[0];
-      if (!touch || !containerRef.current || !data.length) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const idx = Math.max(
-        0,
-        Math.min(
-          Math.floor(((touch.clientX - rect.left) / rect.width) * data.length),
-          data.length - 1,
-        ),
-      );
-      const item = data[idx];
-      if (!item) return;
-      setTouchTip((prev) =>
-        prev
-          ? {
-              ...prev,
-              label: item.label ?? item.month ?? '',
-              value: item.amount ?? item.value ?? 0,
-              color: item.color ?? accentColor,
-              x: touch.clientX,
-              y: touch.clientY,
-            }
-          : null,
-      );
-      hideAfter();
+      const t = e.touches[0];
+      if (t) showFromIndex(getIndex(t.clientX), t.clientX, t.clientY);
     },
-    [data, accentColor, hideAfter],
+    [getIndex, showFromIndex],
   );
 
   const onMouseEnter = useCallback(() => {
@@ -313,21 +293,22 @@ function useChartTooltip(
     setTouchTip(null);
   }, []);
 
-  // Recharts content prop — returns null when last interaction was touch
+  // Typed correctly against Recharts' TooltipProps — no overload errors
   const rechartsContent = useCallback(
-    (props: {
-      active?: boolean;
-      payload?: Array<{ value: number; payload?: { color?: string } }>;
-      label?: string;
-    }) => {
-      // Synchronous ref read — never stale, no re-render needed
+    (props: TooltipProps<ValueType, NameType>) => {
       if (lastInteraction.current === 'touch') return null;
       if (!props.active || !props.payload?.length) return null;
-      const color = props.payload[0]?.payload?.color ?? accentColor;
+      const entry = props.payload[0];
+      const color =
+        (entry.payload as { color?: string } | undefined)?.color ?? accentColor;
+      const value =
+        typeof entry.value === 'number'
+          ? entry.value
+          : Number(entry.value ?? 0);
       return (
         <TooltipBox
-          label={props.label ?? ''}
-          value={Number(props.payload[0].value)}
+          label={String(props.label ?? '')}
+          value={value}
           color={color}
         />
       );
@@ -345,7 +326,7 @@ function useChartTooltip(
   };
 }
 
-// Pie variant — angle-based slice detection instead of x-position
+// ─── usePieChartTooltip ───────────────────────────────────────────────────────
 function usePieChartTooltip(
   data: Array<{ name: string; value: number; color: string }>,
 ) {
@@ -374,7 +355,6 @@ function usePieChartTooltip(
       const rect = containerRef.current.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      // Angle from top, clockwise — matches Recharts startAngle=−90
       const deg =
         ((Math.atan2(clientY - cy, clientX - cx) * 180) / Math.PI + 360 + 90) %
         360;
@@ -395,18 +375,19 @@ function usePieChartTooltip(
       lastInteraction.current = 'touch';
       e.stopPropagation();
       if (timerRef.current) clearTimeout(timerRef.current);
-      const touch = e.touches[0] ?? e.changedTouches[0];
-      if (!touch) return;
-      const slice = findSlice(touch.clientX, touch.clientY);
-      if (!slice) return;
-      setTouchTip({
-        label: slice.name,
-        value: slice.value,
-        color: slice.color,
-        x: touch.clientX,
-        y: touch.clientY,
-      });
-      hideAfter();
+      const t = e.touches[0] ?? e.changedTouches[0];
+      if (!t) return;
+      const slice = findSlice(t.clientX, t.clientY);
+      if (slice) {
+        setTouchTip({
+          label: slice.name,
+          value: slice.value,
+          color: slice.color,
+          x: t.clientX,
+          y: t.clientY,
+        });
+        hideAfter();
+      }
     },
     [findSlice, hideAfter],
   );
@@ -415,18 +396,19 @@ function usePieChartTooltip(
     (e: React.TouchEvent<HTMLDivElement>) => {
       e.stopPropagation();
       if (timerRef.current) clearTimeout(timerRef.current);
-      const touch = e.touches[0];
-      if (!touch) return;
-      const slice = findSlice(touch.clientX, touch.clientY);
-      if (!slice) return;
-      setTouchTip({
-        label: slice.name,
-        value: slice.value,
-        color: slice.color,
-        x: touch.clientX,
-        y: touch.clientY,
-      });
-      hideAfter();
+      const t = e.touches[0];
+      if (!t) return;
+      const slice = findSlice(t.clientX, t.clientY);
+      if (slice) {
+        setTouchTip({
+          label: slice.name,
+          value: slice.value,
+          color: slice.color,
+          x: t.clientX,
+          y: t.clientY,
+        });
+        hideAfter();
+      }
     },
     [findSlice, hideAfter],
   );
@@ -436,23 +418,23 @@ function usePieChartTooltip(
     setTouchTip(null);
   }, []);
 
+  // Typed correctly against Recharts' TooltipProps
   const rechartsContent = useCallback(
-    (props: {
-      active?: boolean;
-      payload?: Array<{
-        name?: string;
-        value?: number;
-        payload?: { color?: string };
-      }>;
-    }) => {
+    (props: TooltipProps<ValueType, NameType>) => {
       if (lastInteraction.current === 'touch') return null;
-      const p = props.payload?.[0];
-      if (!props.active || !p) return null;
+      if (!props.active || !props.payload?.length) return null;
+      const entry = props.payload[0];
+      const color =
+        (entry.payload as { color?: string } | undefined)?.color ?? '#7c5cfc';
+      const value =
+        typeof entry.value === 'number'
+          ? entry.value
+          : Number(entry.value ?? 0);
       return (
         <TooltipBox
-          label={p.name ?? ''}
-          value={Number(p.value ?? 0)}
-          color={p.payload?.color ?? '#7c5cfc'}
+          label={String(entry.name ?? '')}
+          value={value}
+          color={color}
         />
       );
     },
@@ -468,6 +450,14 @@ function usePieChartTooltip(
     rechartsContent,
   };
 }
+
+// ─── Shared wrapper style ─────────────────────────────────────────────────────
+const wrapStyle: React.CSSProperties = {
+  overflow: 'visible',
+  touchAction: 'pan-y',
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+};
 
 // ─── Bar Chart ────────────────────────────────────────────────────────────────
 function BarChartView({
@@ -493,12 +483,7 @@ function BarChartView({
       </p>
       <div
         ref={containerRef}
-        style={{
-          overflow: 'visible',
-          touchAction: 'pan-y',
-          userSelect: 'none',
-          WebkitUserSelect: 'none' as const,
-        }}
+        style={wrapStyle}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onMouseEnter={onMouseEnter}
@@ -604,13 +589,7 @@ function PieChartView({
       <div className='flex flex-col sm:flex-row items-center gap-4'>
         <div
           ref={containerRef}
-          style={{
-            overflow: 'visible',
-            touchAction: 'pan-y',
-            userSelect: 'none',
-            WebkitUserSelect: 'none' as const,
-            flexShrink: 0,
-          }}
+          style={{ ...wrapStyle, flexShrink: 0 }}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onMouseEnter={onMouseEnter}
@@ -702,12 +681,7 @@ function LineChartView({
       </p>
       <div
         ref={containerRef}
-        style={{
-          overflow: 'visible',
-          touchAction: 'pan-y',
-          userSelect: 'none',
-          WebkitUserSelect: 'none' as const,
-        }}
+        style={wrapStyle}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onMouseEnter={onMouseEnter}
@@ -929,7 +903,7 @@ function ToolResultBlock({
   );
 }
 
-// ─── Markdown ─────────────────────────────────────────────────────────────────
+// ─── Markdown renderer ────────────────────────────────────────────────────────
 function renderInline(text: string): React.ReactNode {
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**'))
@@ -950,6 +924,7 @@ function renderInline(text: string): React.ReactNode {
     return part;
   });
 }
+
 function AiTextContent({ text }: { text: string }) {
   return (
     <div className='text-[#d4d2f0] text-sm sm:text-[15px] leading-[1.75] font-sans'>
