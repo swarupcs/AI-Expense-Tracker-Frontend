@@ -28,15 +28,26 @@ function AppShell() {
       }}
     >
       <Sidebar />
-      {/* Main content: on mobile, add top padding for fixed header + bottom padding for bottom nav */}
+
+      {/*
+        KEY FIX: `overflow: hidden` here is intentional — it clips the main
+        container so each PAGE can independently manage its own scroll via
+        an inner `overflow-y: auto` div. This prevents the entire shell from
+        scrolling and allows the header to stay sticky within each page.
+
+        On mobile the top header is 56px and the bottom nav is 64px, so we
+        pad the top and bottom accordingly via CSS variables.
+      */}
       <main
-        className='flex-1 overflow-hidden relative md:pt-0 md:pb-0'
+        className='flex-1 relative'
         style={{
-          // CSS variables make it easy to adjust header/bottomnav heights in one place
-          paddingTop: 'var(--mobile-header-height, 56px)',
-          paddingBottom: 'var(--mobile-bottomnav-height, 64px)',
+          overflow: 'hidden',
+          // On mobile: push content below fixed top bar + above bottom nav
+          paddingTop: 'var(--mobile-header-height, 0px)',
+          paddingBottom: 'var(--mobile-bottomnav-height, 0px)',
         }}
       >
+        {/* Subtle grid overlay */}
         <div
           style={{
             position: 'absolute',
@@ -48,7 +59,16 @@ function AppShell() {
             zIndex: 0,
           }}
         />
-        <div style={{ position: 'relative', zIndex: 1, height: '100%' }}>
+
+        {/* Page content — fills remaining height so pages can scroll internally */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            height: '100%',
+            overflow: 'hidden',
+          }}
+        >
           <Routes>
             <Route path='/' element={<Dashboard />} />
             <Route path='/chat' element={<ChatPage />} />

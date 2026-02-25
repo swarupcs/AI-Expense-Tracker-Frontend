@@ -9,8 +9,8 @@
   --radius: 0.5rem;
 
   /* ── Mobile Layout ── */
-  --mobile-header-height:     56px;
-  --mobile-bottomnav-height:  64px;
+  --mobile-header-height:     0px;   /* desktop default — overridden below for mobile */
+  --mobile-bottomnav-height:  0px;   /* desktop default */
 
   /* ── Obsidian Core ── */
   --background:           #080810;
@@ -56,7 +56,6 @@
   --accent-foreground:    var(--foreground);
   --destructive:          var(--red);
   --destructive-foreground: #ffffff;
-  --border:               rgba(124, 92, 252, 0.15);
   --input:                var(--surface-2);
   --ring:                 var(--violet);
 
@@ -76,6 +75,14 @@
   --sidebar-accent-foreground:  var(--foreground);
   --sidebar-border:             var(--border);
   --sidebar-ring:               var(--violet);
+}
+
+/* On mobile viewports, activate the header/bottomnav offsets */
+@media (max-width: 767px) {
+  :root {
+    --mobile-header-height:    56px;
+    --mobile-bottomnav-height: 64px;
+  }
 }
 
 .dark {
@@ -152,6 +159,18 @@
     @apply bg-background text-foreground antialiased;
     font-family: "DM Sans", sans-serif;
     background: var(--background);
+    /*
+      CRITICAL FIX: Do NOT set overflow:hidden on body.
+      It must be `overflow: hidden` only on the #root / app shell level
+      so that individual page scroll containers work on mobile.
+    */
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh; /* dynamic viewport height — accounts for mobile browser chrome */
+  }
+
+  #root {
+    height: 100%;
     overflow: hidden;
   }
 }
@@ -292,7 +311,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .delay-300 { animation-delay: 0.3s; opacity: 0; }
 .delay-400 { animation-delay: 0.4s; opacity: 0; }
 
-/* ─── Touch targets: ensure minimum 44px on mobile ── */
+/* ─── Touch targets: ensure minimum tap size on mobile ── */
 @media (max-width: 768px) {
   button, a[role="button"] {
     min-height: 36px;

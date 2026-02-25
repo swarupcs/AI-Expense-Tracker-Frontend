@@ -12,7 +12,6 @@ import {
   Cell,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const COLORS = [
   '#7c5cfc',
@@ -92,7 +91,7 @@ export default function InsightsPage() {
       glow: 'rgba(0,212,255,0.25)',
     },
     {
-      label: 'Avg Transaction',
+      label: 'Avg / Expense',
       value: `₹${Math.round(stats?.average ?? 0).toLocaleString('en-IN')}`,
       sub: 'Per expense',
       color: '#00ff87',
@@ -109,51 +108,47 @@ export default function InsightsPage() {
 
   return (
     <div
-      className='flex flex-col h-full overflow-hidden'
-      style={{ background: '#080810' }}
+      className='flex flex-col h-full'
+      style={{ background: '#080810', overflow: 'hidden' }}
     >
-      {/* Header */}
+      {/* ── Sticky header ── */}
       <div
-        className='shrink-0 px-4 sm:px-8 py-4 sm:py-6'
+        className='shrink-0 px-4 sm:px-8 py-4 sm:py-5'
         style={{
           borderBottom: '1px solid rgba(124,92,252,0.1)',
-          background: 'rgba(8,8,16,0.95)',
+          background: 'rgba(8,8,16,0.97)',
           backdropFilter: 'blur(20px)',
+          zIndex: 10,
         }}
       >
         <h1 className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight'>
           Insights
         </h1>
-        <p className='font-mono text-[10px] sm:text-[11px] text-[#4a4870]'>
+        <p className='font-mono text-[10px] text-[#4a4870]'>
           AI-powered spending analysis · Last 6 months
         </p>
       </div>
 
-      <ScrollArea className='flex-1'>
-        <div className='p-4 sm:p-8 space-y-4 sm:space-y-5'>
-          {/* Summary cards - 2x2 on mobile, 4 on desktop */}
+      {/* ── Native scroll content ── */}
+      <div
+        className='flex-1 min-h-0'
+        style={{
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <div className='p-4 sm:p-6 space-y-4 pb-6'>
+          {/* ── Summary cards: 2×2 on mobile, 4-col on sm+ ── */}
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
             {summaryCards.map((card) => (
               <Card
                 key={card.label}
-                className='relative overflow-hidden transition-all hover:shadow-[0_0_25px_var(--glow)] border-transparent'
-                style={
-                  {
-                    background: 'rgba(13,13,26,0.7)',
-                    border: `1px solid ${card.color}20`,
-                    backdropFilter: 'blur(20px)',
-                  } as React.CSSProperties
-                }
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor =
-                    `${card.color}40`;
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    `0 0 25px ${card.glow}`;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor =
-                    `${card.color}20`;
-                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                className='relative overflow-hidden border-transparent transition-all'
+                style={{
+                  background: 'rgba(13,13,26,0.7)',
+                  border: `1px solid ${card.color}20`,
+                  backdropFilter: 'blur(20px)',
                 }}
               >
                 <div
@@ -162,15 +157,15 @@ export default function InsightsPage() {
                     background: `radial-gradient(circle, ${card.glow}, transparent 70%)`,
                   }}
                 />
-                <CardContent className='p-3 sm:p-5'>
-                  <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-wider mb-2'>
+                <CardContent className='p-3 sm:p-4'>
+                  <p className='font-mono text-[9px] text-[#4a4870] uppercase tracking-wider mb-2'>
                     {card.label}
                   </p>
                   {isLoading ? (
                     <div className='h-7 rounded-lg bg-[rgba(124,92,252,0.08)] shimmer mb-1.5' />
                   ) : (
                     <p
-                      className='font-display text-lg sm:text-2xl font-extrabold tracking-tight mb-1.5 truncate'
+                      className='font-display text-lg sm:text-xl font-extrabold tracking-tight mb-1 truncate'
                       style={{
                         color: card.color,
                         textShadow: `0 0 20px ${card.glow}`,
@@ -179,7 +174,7 @@ export default function InsightsPage() {
                       {card.value}
                     </p>
                   )}
-                  <p className='font-mono text-[9px] sm:text-[10px] text-[#4a4870]'>
+                  <p className='font-mono text-[9px] text-[#4a4870]'>
                     {card.sub}
                   </p>
                 </CardContent>
@@ -187,7 +182,7 @@ export default function InsightsPage() {
             ))}
           </div>
 
-          {/* Charts - stacked on mobile, side by side on md+ */}
+          {/* ── Charts: stacked on mobile, side-by-side on md+ ── */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             {/* Line chart */}
             <Card
@@ -197,10 +192,10 @@ export default function InsightsPage() {
                 backdropFilter: 'blur(20px)',
               }}
             >
-              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
-                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-bold'>
+              <CardHeader className='pb-2 px-4 pt-4'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-bold'>
                   <div
-                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    className='w-0.5 h-4 rounded-sm'
                     style={{
                       background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
                     }}
@@ -208,14 +203,18 @@ export default function InsightsPage() {
                   Monthly Trend
                 </CardTitle>
               </CardHeader>
-              <CardContent className='px-2 sm:px-4 pb-4'>
+              <CardContent className='px-2 pb-4'>
                 {isLoading ? (
                   <div
-                    className='h-[180px] sm:h-[220px] rounded-xl shimmer'
+                    className='h-48 rounded-xl shimmer'
                     style={{ background: 'rgba(124,92,252,0.05)' }}
                   />
+                ) : trendData.length === 0 ? (
+                  <div className='h-48 flex items-center justify-center text-[#4a4870] text-sm'>
+                    No data yet
+                  </div>
                 ) : (
-                  <ResponsiveContainer width='100%' height={200}>
+                  <ResponsiveContainer width='100%' height={190}>
                     <LineChart
                       data={trendData}
                       margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -242,6 +241,9 @@ export default function InsightsPage() {
                         }}
                         tickLine={false}
                         axisLine={false}
+                        tickFormatter={(v) =>
+                          v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
+                        }
                       />
                       <Tooltip {...tooltipStyle} />
                       <Line
@@ -271,10 +273,10 @@ export default function InsightsPage() {
                 backdropFilter: 'blur(20px)',
               }}
             >
-              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
-                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-bold'>
+              <CardHeader className='pb-2 px-4 pt-4'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-bold'>
                   <div
-                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    className='w-0.5 h-4 rounded-sm'
                     style={{
                       background: 'linear-gradient(180deg, #ff2d78, #ffb830)',
                     }}
@@ -282,21 +284,25 @@ export default function InsightsPage() {
                   By Category
                 </CardTitle>
               </CardHeader>
-              <CardContent className='px-2 sm:px-4 pb-4'>
+              <CardContent className='px-2 pb-4'>
                 {isLoading ? (
                   <div
-                    className='h-[180px] sm:h-[220px] rounded-xl shimmer'
+                    className='h-48 rounded-xl shimmer'
                     style={{ background: 'rgba(124,92,252,0.05)' }}
                   />
-                ) : pieData.length > 0 ? (
-                  <ResponsiveContainer width='100%' height={200}>
+                ) : pieData.length === 0 ? (
+                  <div className='h-48 flex items-center justify-center text-[#4a4870] text-sm'>
+                    No data yet
+                  </div>
+                ) : (
+                  <ResponsiveContainer width='100%' height={190}>
                     <PieChart>
                       <Pie
                         data={pieData}
                         cx='50%'
                         cy='50%'
-                        innerRadius={55}
-                        outerRadius={80}
+                        innerRadius={50}
+                        outerRadius={75}
                         dataKey='value'
                         paddingAngle={2}
                       >
@@ -307,16 +313,12 @@ export default function InsightsPage() {
                       <Tooltip {...tooltipStyle} />
                     </PieChart>
                   </ResponsiveContainer>
-                ) : (
-                  <div className='h-[200px] flex items-center justify-center text-[#4a4870] text-sm'>
-                    No data yet
-                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Category breakdown */}
+          {/* ── Category breakdown ── */}
           {stats && stats.byCategory.length > 0 && (
             <Card
               className='border-[rgba(124,92,252,0.12)]'
@@ -325,10 +327,10 @@ export default function InsightsPage() {
                 backdropFilter: 'blur(20px)',
               }}
             >
-              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-5'>
-                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-bold'>
+              <CardHeader className='pb-2 px-4 pt-4'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-bold'>
                   <div
-                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    className='w-0.5 h-4 rounded-sm'
                     style={{
                       background: 'linear-gradient(180deg, #00ff87, #00d4ff)',
                     }}
@@ -336,7 +338,7 @@ export default function InsightsPage() {
                   Category Breakdown
                 </CardTitle>
               </CardHeader>
-              <CardContent className='px-4 sm:px-6 pb-4 sm:pb-5 space-y-4 sm:space-y-5'>
+              <CardContent className='px-4 pb-5 space-y-4'>
                 {stats.byCategory.map((cat, i) => {
                   const pct =
                     stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
@@ -344,9 +346,9 @@ export default function InsightsPage() {
                   return (
                     <div key={cat.category}>
                       <div className='flex items-center justify-between mb-2'>
-                        <div className='flex items-center gap-2.5'>
+                        <div className='flex items-center gap-2'>
                           <div
-                            className='w-2 h-2 rounded-sm'
+                            className='w-2 h-2 rounded-sm shrink-0'
                             style={{
                               background: color,
                               boxShadow: `0 0 8px ${color}70`,
@@ -356,8 +358,8 @@ export default function InsightsPage() {
                             {cat.category}
                           </span>
                         </div>
-                        <div className='flex items-center gap-2 sm:gap-3'>
-                          <span className='font-mono text-[10px] sm:text-[11px] text-[#4a4870]'>
+                        <div className='flex items-center gap-3'>
+                          <span className='font-mono text-[10px] text-[#4a4870]'>
                             {Math.round(pct)}%
                           </span>
                           <span
@@ -369,7 +371,7 @@ export default function InsightsPage() {
                         </div>
                       </div>
                       <div
-                        className='h-1 rounded-full overflow-hidden'
+                        className='h-1.5 rounded-full overflow-hidden'
                         style={{ background: 'rgba(124,92,252,0.08)' }}
                       >
                         <div
@@ -387,8 +389,21 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Empty state */}
+          {!isLoading && expenses.length === 0 && (
+            <div className='flex flex-col items-center justify-center py-20 text-center'>
+              <div className='text-5xl mb-4'>📊</div>
+              <p className='font-display text-base font-bold text-[#f0efff] mb-1'>
+                No data yet
+              </p>
+              <p className='text-[#4a4870] text-sm'>
+                Add some expenses to see your insights
+              </p>
+            </div>
+          )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

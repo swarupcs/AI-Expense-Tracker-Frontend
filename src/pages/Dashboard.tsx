@@ -21,7 +21,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CATEGORY_COLORS: Record<string, string> = {
   DINING: '#ff2d78',
@@ -82,10 +81,10 @@ function StatCard({
           background: `radial-gradient(circle, ${accent}20, transparent 70%)`,
         }}
       />
-      <CardContent className='p-4 sm:p-6'>
-        <div className='flex justify-between items-start mb-3 sm:mb-4'>
+      <CardContent className='p-4 sm:p-5'>
+        <div className='flex justify-between items-start mb-3'>
           <div
-            className='w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center'
+            className='w-9 h-9 rounded-xl flex items-center justify-center'
             style={{
               background: `${accent}15`,
               border: `1px solid ${accent}30`,
@@ -93,19 +92,19 @@ function StatCard({
           >
             <Icon style={{ width: '16px', height: '16px', color: accent }} />
           </div>
-          <span className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-wider'>
+          <span className='font-mono text-[9px] text-[#4a4870] uppercase tracking-wider'>
             {label}
           </span>
         </div>
 
         {isLoading ? (
-          <div className='h-8 rounded-lg bg-[rgba(124,92,252,0.08)] mb-2 shimmer' />
+          <div className='h-7 rounded-lg bg-[rgba(124,92,252,0.08)] mb-2 shimmer' />
         ) : (
-          <div className='font-display text-2xl sm:text-3xl font-extrabold text-[#f0efff] tracking-tight mb-2 leading-none'>
+          <div className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight mb-1.5 leading-none'>
             {value}
           </div>
         )}
-        <div className='font-mono text-[10px] sm:text-[11px] text-[#4a4870] flex items-center gap-1.5'>
+        <div className='font-mono text-[10px] text-[#4a4870] flex items-center gap-1.5 flex-wrap'>
           {sub}
         </div>
       </CardContent>
@@ -116,7 +115,6 @@ function StatCard({
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
 
-  // Compute date range inside component so it stays fresh across month boundaries
   const { currentMonthFrom, currentMonthTo } = useMemo(() => {
     const now = new Date();
     return {
@@ -164,57 +162,71 @@ export default function Dashboard() {
   };
 
   return (
+    /* 
+      KEY FIX: Use a plain div with overflow-y-auto instead of ScrollArea.
+      On mobile, ScrollArea from Radix can fail to scroll properly when nested
+      inside a flex container that has overflow-hidden parents.
+      We rely on the natural block flow + overflow-y-auto here.
+    */
     <div
-      className='flex flex-col h-full overflow-hidden'
-      style={{ background: '#080810' }}
+      className='flex flex-col h-full'
+      style={{ background: '#080810', overflow: 'hidden' }}
     >
-      {/* Header */}
+      {/* Sticky Header */}
       <div
-        className='shrink-0 px-4 sm:px-8 py-4 sm:py-7'
+        className='shrink-0 px-4 sm:px-8 py-4 sm:py-5'
         style={{
           borderBottom: '1px solid rgba(124,92,252,0.1)',
-          background: 'rgba(8,8,16,0.9)',
+          background: 'rgba(8,8,16,0.95)',
           backdropFilter: 'blur(20px)',
+          zIndex: 10,
         }}
       >
         <div className='flex items-center justify-between'>
           <div>
             <div className='flex items-center gap-2 mb-1'>
-              <Sparkles className='w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#7c5cfc]' />
-              <span className='font-mono text-[9px] sm:text-[10px] text-[#4a4870] uppercase tracking-[0.15em]'>
+              <Sparkles className='w-3.5 h-3.5 text-[#7c5cfc]' />
+              <span className='font-mono text-[9px] text-[#4a4870] uppercase tracking-[0.15em]'>
                 {new Date().toLocaleDateString('en-IN', {
                   month: 'long',
                   year: 'numeric',
                 })}
               </span>
             </div>
-            <h1 className='font-display text-xl sm:text-3xl font-extrabold text-[#f0efff] tracking-tight'>
+            <h1 className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight'>
               {user ? `Hey, ${user.name.split(' ')[0]} 👋` : 'Dashboard'}
             </h1>
           </div>
           <div
-            className='flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl'
+            className='flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl'
             style={{
               background: 'rgba(0,255,135,0.07)',
               border: '1px solid rgba(0,255,135,0.2)',
             }}
           >
             <div
-              className='w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full pulse-dot'
+              className='w-1.5 h-1.5 rounded-full pulse-dot'
               style={{ background: '#00ff87', boxShadow: '0 0 6px #00ff87' }}
             />
-            <span className='font-mono text-[9px] sm:text-[11px] text-[#00ff87]'>
+            <span className='font-mono text-[9px] sm:text-[10px] text-[#00ff87]'>
               Live
             </span>
           </div>
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <ScrollArea className='flex-1'>
-        <div className='p-4 sm:p-8 space-y-4 sm:space-y-6'>
-          {/* Stat cards - 1 col on mobile, 3 on desktop */}
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4'>
+      {/* Scrollable Content — native overflow-y-auto for reliable mobile scroll */}
+      <div
+        className='flex-1 min-h-0'
+        style={{
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <div className='p-4 sm:p-6 space-y-4 pb-6'>
+          {/* ── Stat Cards: 1-col on mobile, 3-col on sm+ ── */}
+          <div className='grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3'>
             <StatCard
               label='Total Spent'
               value={`₹${(stats?.total ?? 0).toLocaleString('en-IN')}`}
@@ -245,10 +257,10 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Charts - stacked on mobile, side by side on lg */}
+          {/* ── Charts ── */}
           {!isLoading && expenses.length > 0 && (
-            <div className='grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_340px] gap-4'>
-              {/* Bar chart */}
+            <div className='grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_320px] gap-4'>
+              {/* Bar Chart */}
               <Card
                 className='border-[rgba(124,92,252,0.12)]'
                 style={{
@@ -256,10 +268,10 @@ export default function Dashboard() {
                   backdropFilter: 'blur(20px)',
                 }}
               >
-                <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-6'>
-                  <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-semibold'>
+                <CardHeader className='pb-2 px-4 pt-4'>
+                  <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-semibold'>
                     <div
-                      className='w-0.5 h-4 sm:h-5 rounded-sm'
+                      className='w-0.5 h-4 rounded-sm'
                       style={{
                         background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
                       }}
@@ -267,8 +279,8 @@ export default function Dashboard() {
                     Recent Expenses
                   </CardTitle>
                 </CardHeader>
-                <CardContent className='px-2 sm:px-4 pb-4'>
-                  <ResponsiveContainer width='100%' height={180}>
+                <CardContent className='px-2 pb-4'>
+                  <ResponsiveContainer width='100%' height={160}>
                     <BarChart
                       data={barData}
                       margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -305,7 +317,7 @@ export default function Dashboard() {
                       <Bar
                         dataKey='amount'
                         radius={[6, 6, 0, 0]}
-                        maxBarSize={40}
+                        maxBarSize={36}
                         fill='#7c5cfc'
                       >
                         {barData.map((_, i) => (
@@ -320,7 +332,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Pie chart */}
+              {/* Pie Chart */}
               {pieData.length > 0 && (
                 <Card
                   className='border-[rgba(124,92,252,0.12)]'
@@ -329,10 +341,10 @@ export default function Dashboard() {
                     backdropFilter: 'blur(20px)',
                   }}
                 >
-                  <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-6'>
-                    <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-semibold'>
+                  <CardHeader className='pb-2 px-4 pt-4'>
+                    <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-semibold'>
                       <div
-                        className='w-0.5 h-4 sm:h-5 rounded-sm'
+                        className='w-0.5 h-4 rounded-sm'
                         style={{
                           background:
                             'linear-gradient(180deg, #ff2d78, #ffb830)',
@@ -341,15 +353,15 @@ export default function Dashboard() {
                       By Category
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className='px-2 sm:px-4 pb-4'>
-                    <ResponsiveContainer width='100%' height={160}>
+                  <CardContent className='px-2 pb-4'>
+                    <ResponsiveContainer width='100%' height={140}>
                       <PieChart>
                         <Pie
                           data={pieData}
                           cx='50%'
                           cy='50%'
-                          innerRadius={45}
-                          outerRadius={70}
+                          innerRadius={40}
+                          outerRadius={62}
                           dataKey='value'
                           paddingAngle={2}
                         >
@@ -360,7 +372,8 @@ export default function Dashboard() {
                         <Tooltip contentStyle={tooltipStyle.contentStyle} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className='space-y-1.5 mt-2'>
+                    {/* Legend */}
+                    <div className='space-y-1.5 mt-2 px-2'>
                       {pieData.slice(0, 4).map((d) => (
                         <div
                           key={d.name}
@@ -368,7 +381,7 @@ export default function Dashboard() {
                         >
                           <div className='flex items-center gap-2'>
                             <div
-                              className='w-2 h-2 rounded-sm'
+                              className='w-2 h-2 rounded-sm shrink-0'
                               style={{
                                 background: d.color,
                                 boxShadow: `0 0 6px ${d.color}60`,
@@ -393,7 +406,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Recent transactions */}
+          {/* ── Recent Transactions ── */}
           {expenses.length > 0 && (
             <Card
               className='border-[rgba(124,92,252,0.12)]'
@@ -402,10 +415,10 @@ export default function Dashboard() {
                 backdropFilter: 'blur(20px)',
               }}
             >
-              <CardHeader className='pb-2 px-4 sm:px-6 pt-4 sm:pt-6'>
-                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm sm:text-base font-semibold'>
+              <CardHeader className='pb-2 px-4 pt-4'>
+                <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-semibold'>
                   <div
-                    className='w-0.5 h-4 sm:h-5 rounded-sm'
+                    className='w-0.5 h-4 rounded-sm'
                     style={{
                       background: 'linear-gradient(180deg, #00d4ff, #00ff87)',
                     }}
@@ -413,15 +426,15 @@ export default function Dashboard() {
                   Recent Transactions
                 </CardTitle>
               </CardHeader>
-              <CardContent className='px-2 sm:px-4 pb-4 space-y-1'>
+              <CardContent className='px-2 pb-3 space-y-0.5'>
                 {expenses.slice(0, 5).map((exp) => (
                   <div
                     key={exp.id}
-                    className='flex items-center justify-between p-2.5 sm:p-3 rounded-xl hover:bg-[rgba(124,92,252,0.06)] transition-colors cursor-default'
+                    className='flex items-center justify-between px-2 py-2.5 rounded-xl hover:bg-[rgba(124,92,252,0.06)] transition-colors cursor-default'
                   >
-                    <div className='flex items-center gap-2.5 sm:gap-3 min-w-0'>
+                    <div className='flex items-center gap-2.5 min-w-0 flex-1'>
                       <div
-                        className='w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-sm shrink-0'
+                        className='w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0'
                         style={{
                           background: `${CATEGORY_COLORS[exp.category] ?? '#4a4870'}15`,
                           border: `1px solid ${CATEGORY_COLORS[exp.category] ?? '#4a4870'}30`,
@@ -430,16 +443,25 @@ export default function Dashboard() {
                         {CATEGORY_EMOJI[exp.category] ?? '📦'}
                       </div>
                       <div className='min-w-0'>
-                        <div className='font-sans text-sm font-medium text-[#f0efff] truncate max-w-[140px] sm:max-w-none'>
+                        <div className='font-sans text-sm font-medium text-[#f0efff] truncate max-w-[140px] sm:max-w-[260px]'>
                           {exp.title}
                         </div>
-                        <div className='font-mono text-[10px] text-[#4a4870]'>
-                          {exp.date}
+                        <div className='font-mono text-[9px] text-[#4a4870] flex items-center gap-1.5'>
+                          <span
+                            className='px-1.5 py-px rounded text-[8px]'
+                            style={{
+                              background: `${CATEGORY_COLORS[exp.category] ?? '#4a4870'}18`,
+                              color: CATEGORY_COLORS[exp.category] ?? '#4a4870',
+                            }}
+                          >
+                            {exp.category}
+                          </span>
+                          <span>{exp.date}</span>
                         </div>
                       </div>
                     </div>
                     <div
-                      className='font-display text-sm sm:text-base font-bold shrink-0 ml-2'
+                      className='font-display text-sm font-bold shrink-0 ml-2'
                       style={{
                         color: CATEGORY_COLORS[exp.category] ?? '#9d7fff',
                       }}
@@ -452,6 +474,20 @@ export default function Dashboard() {
             </Card>
           )}
 
+          {/* ── Loading skeletons ── */}
+          {isLoading && (
+            <div className='space-y-3'>
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className='h-32 rounded-2xl shimmer'
+                  style={{ background: 'rgba(124,92,252,0.05)' }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ── Empty state ── */}
           {!isLoading && expenses.length === 0 && (
             <div className='flex flex-col items-center justify-center py-20 text-center'>
               <div className='text-5xl mb-4'>✨</div>
@@ -464,7 +500,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

@@ -11,19 +11,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Menu,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useSignOut } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -34,7 +27,7 @@ const navItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-// Pure React hover tooltip — no external deps, fully controlled styles
+// ─── Desktop-only tooltip ─────────────────────────────────────────────────────
 function SidebarTooltip({
   children,
   content,
@@ -49,22 +42,17 @@ function SidebarTooltip({
   const show = () => {
     if (childRef.current) {
       const rect = childRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.top + rect.height / 2,
-        left: rect.right + 14,
-      });
+      setPos({ top: rect.top + rect.height / 2, left: rect.right + 14 });
     }
     setVisible(true);
   };
-
-  const hide = () => setVisible(false);
 
   return (
     <>
       <div
         ref={childRef}
         onMouseEnter={show}
-        onMouseLeave={hide}
+        onMouseLeave={() => setVisible(false)}
         style={{ width: 'fit-content' }}
       >
         {children}
@@ -110,305 +98,359 @@ function SidebarTooltip({
   );
 }
 
-function NavItems({
-  isExpanded,
-  onNavClick,
-}: {
-  isExpanded?: boolean;
-  onNavClick?: () => void;
-}) {
+// ─── Desktop sidebar nav items ────────────────────────────────────────────────
+function DesktopNavItems({ isExpanded }: { isExpanded: boolean }) {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const { mutate: signOut, isPending } = useSignOut();
 
   return (
-    <>
-      <div className='flex flex-col h-full'>
-        {/* Logo */}
+    <div className='flex flex-col h-full'>
+      {/* Logo */}
+      <div
+        className={cn(
+          'flex items-center gap-3 mb-8',
+          isExpanded ? 'justify-start px-5' : 'justify-center',
+        )}
+      >
         <div
-          className={cn(
-            'flex items-center gap-3 mb-8',
-            isExpanded ? 'justify-start px-5' : 'justify-center',
-          )}
+          className='w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0'
+          style={{
+            background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+            boxShadow: '0 0 20px rgba(124,92,252,0.5)',
+          }}
         >
-          <div
-            className='w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0'
-            style={{
-              background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-              boxShadow: '0 0 20px rgba(124,92,252,0.5)',
-            }}
-          >
-            <Zap className='w-5 h-5 text-white' strokeWidth={2.5} />
+          <Zap className='w-5 h-5 text-white' strokeWidth={2.5} />
+        </div>
+        {isExpanded && (
+          <div>
+            <div className='font-display text-lg font-extrabold text-[--foreground] tracking-tight'>
+              ExpenseAI
+            </div>
+            <div className='font-mono text-[9px] text-[--foreground-subtle] tracking-wider uppercase'>
+              Smart Tracking
+            </div>
           </div>
-          {isExpanded && (
-            <div>
-              <div className='font-display text-lg font-extrabold text-[--foreground] tracking-tight'>
-                ExpenseAI
-              </div>
-              <div className='font-mono text-[9px] text-[--foreground-subtle] tracking-wider uppercase'>
-                Smart Tracking
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Nav */}
-        <nav
-          className={cn(
-            'flex flex-col gap-1 flex-1',
-            isExpanded ? 'px-5' : 'items-center',
-          )}
-        >
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              item.href === '/'
-                ? location.pathname === '/'
-                : location.pathname.startsWith(item.href);
-
-            const navButton = (
-              <NavLink to={item.href} className='w-full' onClick={onNavClick}>
-                <Button
-                  variant='ghost'
-                  className={cn(
-                    'relative transition-all h-12 rounded-xl w-full',
-                    isExpanded
-                      ? 'justify-start gap-3 px-3.5'
-                      : 'justify-center w-12',
-                    isActive
-                      ? 'bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.15)] border border-[rgba(124,92,252,0.4)] shadow-[0_0_15px_rgba(124,92,252,0.25)]'
-                      : 'border border-transparent hover:bg-[rgba(124,92,252,0.1)] hover:border-[rgba(124,92,252,0.2)]',
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      'shrink-0 transition-colors',
-                      isActive
-                        ? 'text-[--violet-bright]'
-                        : 'text-[--foreground-subtle]',
-                    )}
-                    size={18}
-                    strokeWidth={isActive ? 2.5 : 2}
-                  />
-                  {isExpanded && (
-                    <span
-                      className={cn(
-                        'font-sans text-sm transition-colors whitespace-nowrap',
-                        isActive
-                          ? 'text-[--foreground] font-semibold'
-                          : 'text-[--foreground-muted] font-medium',
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  )}
-                  {isActive && !isExpanded && (
-                    <div
-                      className='absolute -right-[13px] top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-sm'
-                      style={{
-                        background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
-                        boxShadow: '0 0 8px rgba(124,92,252,0.6)',
-                      }}
-                    />
-                  )}
-                </Button>
-              </NavLink>
-            );
-
-            return isExpanded ? (
-              <div key={item.href}>{navButton}</div>
-            ) : (
-              <SidebarTooltip
-                key={item.href}
-                content={
-                  <span
-                    style={{
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontWeight: 500,
-                      fontSize: '13px',
-                      color: '#f0efff',
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                }
-              >
-                {navButton}
-              </SidebarTooltip>
-            );
-          })}
-        </nav>
-
-        {/* User Section */}
-        <div
-          className={cn(
-            'flex flex-col gap-3 mt-2',
-            isExpanded ? 'px-5' : 'items-center',
-          )}
-        >
-          <Separator className='bg-[rgba(124,92,252,0.12)]' />
-
-          {user && (
-            <div
-              className={cn(
-                'flex items-center gap-3 rounded-xl transition-all',
-                isExpanded
-                  ? 'p-2.5 px-3 bg-[rgba(124,92,252,0.08)] border border-[rgba(124,92,252,0.15)]'
-                  : 'justify-center',
-              )}
-            >
-              {isExpanded ? (
-                <Avatar className='w-[38px] h-[38px] rounded-xl shrink-0 cursor-default'>
-                  <AvatarFallback className='rounded-xl bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.2)] border border-[rgba(124,92,252,0.3)] text-[--violet-bright] font-display font-bold text-sm'>
-                    {user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                <SidebarTooltip
-                  content={
-                    <div>
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontWeight: 600,
-                          fontSize: '13px',
-                          color: '#f0efff',
-                          marginBottom: 2,
-                        }}
-                      >
-                        {user.name}
-                      </p>
-                      <p
-                        style={{
-                          fontFamily: '"JetBrains Mono", monospace',
-                          fontSize: '11px',
-                          color: '#8b89b0',
-                        }}
-                      >
-                        {user.email}
-                      </p>
-                    </div>
-                  }
-                >
-                  <Avatar className='w-[38px] h-[38px] rounded-xl shrink-0 cursor-default'>
-                    <AvatarFallback className='rounded-xl bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.2)] border border-[rgba(124,92,252,0.3)] text-[--violet-bright] font-display font-bold text-sm'>
-                      {user.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </SidebarTooltip>
-              )}
-              {isExpanded && (
-                <div className='min-w-0 flex-1'>
-                  <div className='font-sans text-[13px] font-semibold text-[--foreground] truncate'>
-                    {user.name}
-                  </div>
-                  <div className='font-mono text-[10px] text-[--foreground-subtle] truncate'>
-                    {user.email}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isExpanded ? (
-            <Button
-              variant='ghost'
-              onClick={() => signOut()}
-              disabled={isPending}
-              className='w-full h-[38px] justify-start gap-2.5 px-3.5 text-[#8b89b0] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all font-sans text-sm font-medium disabled:opacity-50'
-            >
-              <LogOut className='h-4 w-4 shrink-0' />
-              <span>Sign Out</span>
-            </Button>
-          ) : (
-            <SidebarTooltip
-              content={
-                <span
-                  style={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 500,
-                    fontSize: '13px',
-                    color: '#ff6b6b',
-                  }}
-                >
-                  Sign Out
-                </span>
-              }
-            >
-              <Button
-                variant='ghost'
-                size='icon'
-                onClick={() => signOut()}
-                disabled={isPending}
-                className='w-[38px] h-[38px] text-[#8b89b0] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all disabled:opacity-50'
-              >
-                <LogOut className='h-4 w-4' />
-              </Button>
-            </SidebarTooltip>
-          )}
-        </div>
+        )}
       </div>
-    </>
-  );
-}
 
-function MobileBottomNav({ onSignOut }: { onSignOut: () => void }) {
-  const location = useLocation();
-
-  return (
-    <nav
-      className='fixed bottom-0 left-0 right-0 z-50 md:hidden'
-      style={{
-        background: 'rgba(8,8,16,0.97)',
-        borderTop: '1px solid rgba(124,92,252,0.15)',
-        backdropFilter: 'blur(20px)',
-      }}
-    >
-      <div className='flex items-center justify-around px-2 py-2 safe-area-pb'>
+      {/* Nav links */}
+      <nav
+        className={cn(
+          'flex flex-col gap-1 flex-1',
+          isExpanded ? 'px-5' : 'items-center',
+        )}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === '/'
               ? location.pathname === '/'
               : location.pathname.startsWith(item.href);
+
+          const navButton = (
+            <NavLink to={item.href} className='w-full'>
+              <Button
+                variant='ghost'
+                className={cn(
+                  'relative transition-all h-12 rounded-xl w-full',
+                  isExpanded
+                    ? 'justify-start gap-3 px-3.5'
+                    : 'justify-center w-12',
+                  isActive
+                    ? 'bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.15)] border border-[rgba(124,92,252,0.4)] shadow-[0_0_15px_rgba(124,92,252,0.25)]'
+                    : 'border border-transparent hover:bg-[rgba(124,92,252,0.1)] hover:border-[rgba(124,92,252,0.2)]',
+                )}
+              >
+                <Icon
+                  className={cn(
+                    'shrink-0 transition-colors',
+                    isActive
+                      ? 'text-[--violet-bright]'
+                      : 'text-[--foreground-subtle]',
+                  )}
+                  size={18}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                {isExpanded && (
+                  <span
+                    className={cn(
+                      'font-sans text-sm transition-colors whitespace-nowrap',
+                      isActive
+                        ? 'text-[--foreground] font-semibold'
+                        : 'text-[--foreground-muted] font-medium',
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                )}
+                {isActive && !isExpanded && (
+                  <div
+                    className='absolute -right-[13px] top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-sm'
+                    style={{
+                      background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
+                      boxShadow: '0 0 8px rgba(124,92,252,0.6)',
+                    }}
+                  />
+                )}
+              </Button>
+            </NavLink>
+          );
+
+          return isExpanded ? (
+            <div key={item.href}>{navButton}</div>
+          ) : (
+            <SidebarTooltip
+              key={item.href}
+              content={
+                <span
+                  style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: 500,
+                    fontSize: '13px',
+                    color: '#f0efff',
+                  }}
+                >
+                  {item.label}
+                </span>
+              }
+            >
+              {navButton}
+            </SidebarTooltip>
+          );
+        })}
+      </nav>
+
+      {/* User section */}
+      <div
+        className={cn(
+          'flex flex-col gap-3 mt-2',
+          isExpanded ? 'px-5' : 'items-center',
+        )}
+      >
+        <Separator className='bg-[rgba(124,92,252,0.12)]' />
+
+        {user && (
+          <div
+            className={cn(
+              'flex items-center gap-3 rounded-xl transition-all',
+              isExpanded
+                ? 'p-2.5 px-3 bg-[rgba(124,92,252,0.08)] border border-[rgba(124,92,252,0.15)]'
+                : 'justify-center',
+            )}
+          >
+            {isExpanded ? (
+              <Avatar className='w-[38px] h-[38px] rounded-xl shrink-0'>
+                <AvatarFallback className='rounded-xl bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.2)] border border-[rgba(124,92,252,0.3)] text-[--violet-bright] font-display font-bold text-sm'>
+                  {user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <SidebarTooltip
+                content={
+                  <div>
+                    <p
+                      style={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '13px',
+                        color: '#f0efff',
+                        marginBottom: 2,
+                      }}
+                    >
+                      {user.name}
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '11px',
+                        color: '#8b89b0',
+                      }}
+                    >
+                      {user.email}
+                    </p>
+                  </div>
+                }
+              >
+                <Avatar className='w-[38px] h-[38px] rounded-xl shrink-0 cursor-default'>
+                  <AvatarFallback className='rounded-xl bg-gradient-to-br from-[rgba(124,92,252,0.3)] to-[rgba(0,212,255,0.2)] border border-[rgba(124,92,252,0.3)] text-[--violet-bright] font-display font-bold text-sm'>
+                    {user.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </SidebarTooltip>
+            )}
+            {isExpanded && (
+              <div className='min-w-0 flex-1'>
+                <div className='font-sans text-[13px] font-semibold text-[--foreground] truncate'>
+                  {user.name}
+                </div>
+                <div className='font-mono text-[10px] text-[--foreground-subtle] truncate'>
+                  {user.email}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isExpanded ? (
+          <Button
+            variant='ghost'
+            onClick={() => signOut()}
+            disabled={isPending}
+            className='w-full h-[38px] justify-start gap-2.5 px-3.5 text-[#8b89b0] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all font-sans text-sm font-medium disabled:opacity-50'
+          >
+            <LogOut className='h-4 w-4 shrink-0' />
+            <span>Sign Out</span>
+          </Button>
+        ) : (
+          <SidebarTooltip
+            content={
+              <span
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontWeight: 500,
+                  fontSize: '13px',
+                  color: '#ff6b6b',
+                }}
+              >
+                Sign Out
+              </span>
+            }
+          >
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={() => signOut()}
+              disabled={isPending}
+              className='w-[38px] h-[38px] text-[#8b89b0] hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/40 border border-transparent transition-all disabled:opacity-50'
+            >
+              <LogOut className='h-4 w-4' />
+            </Button>
+          </SidebarTooltip>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Mobile: top logo bar (branding only, no hamburger) ───────────────────────
+function MobileTopBar() {
+  return (
+    <div
+      className='md:hidden fixed top-0 left-0 right-0 z-40 flex items-center px-4 h-14'
+      style={{
+        background: 'rgba(8,8,16,0.97)',
+        borderBottom: '1px solid rgba(124,92,252,0.12)',
+        backdropFilter: 'blur(20px)',
+      }}
+    >
+      <div className='flex items-center gap-2.5'>
+        <div
+          className='w-8 h-8 rounded-lg flex items-center justify-center'
+          style={{
+            background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+            boxShadow: '0 0 14px rgba(124,92,252,0.4)',
+          }}
+        >
+          <Zap className='w-4 h-4 text-white' strokeWidth={2.5} />
+        </div>
+        <div>
+          <span className='font-display text-base font-extrabold text-[--foreground] tracking-tight'>
+            ExpenseAI
+          </span>
+          <span className='font-mono text-[9px] text-[#4a4870] tracking-widest uppercase ml-2 hidden xs:inline'>
+            Smart Tracking
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mobile: bottom navigation bar ───────────────────────────────────────────
+function MobileBottomNav() {
+  const location = useLocation();
+  const { mutate: signOut } = useSignOut();
+
+  return (
+    <nav
+      className='md:hidden fixed bottom-0 left-0 right-0 z-50'
+      style={{
+        background: 'rgba(8,8,16,0.97)',
+        borderTop: '1px solid rgba(124,92,252,0.15)',
+        backdropFilter: 'blur(20px)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <div className='flex items-stretch justify-around'>
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.href === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.href);
+
           return (
             <NavLink
               key={item.href}
               to={item.href}
-              className='flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all'
-              style={{
-                color: isActive ? '#9d7fff' : '#4a4870',
-                background: isActive ? 'rgba(124,92,252,0.1)' : 'transparent',
-              }}
+              className='flex flex-col items-center justify-center gap-1 flex-1 py-2.5 transition-all relative'
+              style={{ color: isActive ? '#9d7fff' : '#4a4870' }}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span className='text-[9px] font-mono tracking-wide'>
+              {/* Active indicator pill at top edge */}
+              {isActive && (
+                <div
+                  className='absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full'
+                  style={{
+                    background: 'linear-gradient(90deg, #7c5cfc, #00d4ff)',
+                  }}
+                />
+              )}
+              <div
+                className='flex items-center justify-center w-8 h-8 rounded-xl transition-all'
+                style={{
+                  background: isActive
+                    ? 'rgba(124,92,252,0.15)'
+                    : 'transparent',
+                }}
+              >
+                <Icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
+              </div>
+              <span
+                className='font-mono text-[9px] tracking-wide leading-none'
+                style={{ color: isActive ? '#9d7fff' : '#4a4870' }}
+              >
                 {item.label}
               </span>
             </NavLink>
           );
         })}
+
+        {/* Sign out tab */}
         <button
-          onClick={() => onSignOut()}
-          className='flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all'
+          onClick={() => signOut()}
+          className='flex flex-col items-center justify-center gap-1 flex-1 py-2.5 transition-all'
           style={{ color: '#4a4870' }}
         >
-          <LogOut size={20} strokeWidth={2} />
-          <span className='text-[9px] font-mono tracking-wide'>Logout</span>
+          <div className='flex items-center justify-center w-8 h-8 rounded-xl'>
+            <LogOut size={19} strokeWidth={1.8} />
+          </div>
+          <span className='font-mono text-[9px] tracking-wide leading-none'>
+            Logout
+          </span>
         </button>
       </div>
     </nav>
   );
 }
 
+// ─── Main export ──────────────────────────────────────────────────────────────
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { mutate: signOut } = useSignOut();
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* ── Desktop sidebar ── */}
       <aside
         className={cn(
           'hidden md:flex flex-col h-screen shrink-0 relative transition-all duration-300 ease-in-out overflow-visible',
@@ -417,7 +459,7 @@ export function Sidebar() {
         )}
         style={{ padding: '20px 0' }}
       >
-        {/* Vertical gradient line */}
+        {/* Vertical gradient accent line */}
         <div
           className='absolute right-0 top-[20%] bottom-[20%] w-px'
           style={{
@@ -426,7 +468,7 @@ export function Sidebar() {
           }}
         />
 
-        {/* Toggle Button */}
+        {/* Expand/collapse toggle */}
         <div
           className={cn(
             'mb-4 transition-all',
@@ -447,58 +489,12 @@ export function Sidebar() {
           </Button>
         </div>
 
-        <NavItems isExpanded={isExpanded} />
+        <DesktopNavItems isExpanded={isExpanded} />
       </aside>
 
-      {/* Mobile: Top bar with hamburger */}
-      <div
-        className='md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3'
-        style={{
-          background: 'rgba(8,8,16,0.97)',
-          borderBottom: '1px solid rgba(124,92,252,0.12)',
-          backdropFilter: 'blur(20px)',
-        }}
-      >
-        <div className='flex items-center gap-2'>
-          <div
-            className='w-8 h-8 rounded-lg flex items-center justify-center'
-            style={{ background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)' }}
-          >
-            <Zap className='w-4 h-4 text-white' strokeWidth={2.5} />
-          </div>
-          <span className='font-display text-base font-extrabold text-[--foreground]'>
-            ExpenseAI
-          </span>
-        </div>
-
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='h-9 w-9 border border-[rgba(124,92,252,0.2)] text-[--foreground-muted]'
-            >
-              <Menu className='h-5 w-5' />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side='right'
-            className='w-72 p-0 border-[rgba(124,92,252,0.2)]'
-            style={{ background: 'rgba(8,8,16,0.98)' }}
-          >
-            <SheetTitle className='sr-only'>Navigation Menu</SheetTitle>
-            <div className='flex flex-col h-full pt-6 pb-4'>
-              <NavItems
-                isExpanded={true}
-                onNavClick={() => setMobileOpen(false)}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      {/* Mobile Bottom Nav */}
-      <MobileBottomNav onSignOut={signOut} />
+      {/* ── Mobile: logo bar at top + nav at bottom ── */}
+      <MobileTopBar />
+      <MobileBottomNav />
     </>
   );
 }
