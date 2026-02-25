@@ -900,13 +900,25 @@ function ToolResultBlock({
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
+/**
+ * Inline parser — handles: **bold**, *italic*, `code`, ~~strikethrough~~
+ * Processes tokens left-to-right so nested combinations work naturally.
+ */
 function renderInline(text: string): React.ReactNode {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) => {
+  // Split on bold, italic, inline-code, strikethrough tokens
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|~~[^~]+~~)/g);
+  return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**'))
       return (
         <strong key={i} className='font-semibold text-[#f0efff]'>
           {part.slice(2, -2)}
         </strong>
+      );
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2)
+      return (
+        <em key={i} className='italic text-[#c9c7f0]'>
+          {part.slice(1, -1)}
+        </em>
       );
     if (part.startsWith('`') && part.endsWith('`'))
       return (
@@ -917,22 +929,26 @@ function renderInline(text: string): React.ReactNode {
           {part.slice(1, -1)}
         </code>
       );
+    if (part.startsWith('~~') && part.endsWith('~~'))
+      return (
+        <span key={i} className='line-through text-[#8b89b0]'>
+          {part.slice(2, -2)}
+        </span>
+      );
     return part;
   });
 }
 
-// ─── Table parser ─────────────────────────────────────────────────────────────
+// ─── Table ────────────────────────────────────────────────────────────────────
 
-/** Returns true if a line looks like a markdown separator: |---|---|--- */
 function isSeparatorRow(line: string): boolean {
   return /^\|[\s\-|:]+\|$/.test(line.trim());
 }
 
-/** Split a markdown table row into trimmed cell strings */
 function parseRow(line: string): string[] {
   return line
     .trim()
-    .replace(/^\||\|$/g, '') // strip leading/trailing pipes
+    .replace(/^\||\|$/g, '')
     .split('|')
     .map((c) => c.trim());
 }
@@ -992,13 +1008,71 @@ function MarkdownTable({ rows }: { rows: string[][] }) {
   );
 }
 
+// ─── Code block ───────────────────────────────────────────────────────────────
+
+function CodeBlock({ lang, code }: { lang: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div
+      className='my-3 rounded-xl overflow-hidden'
+      style={{
+        border: '1px solid rgba(124,92,252,0.2)',
+        background: 'rgba(8,8,16,0.9)',
+      }}
+    >
+      {/* Header bar */}
+      <div
+        className='flex items-center justify-between px-4 py-2'
+        style={{ borderBottom: '1px solid rgba(124,92,252,0.12)' }}
+      >
+        <span className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>
+          {lang || 'code'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className='font-mono text-[10px] transition-colors px-2 py-0.5 rounded'
+          style={{
+            color: copied ? '#00ff87' : '#4a4870',
+            background: copied ? 'rgba(0,255,135,0.08)' : 'transparent',
+          }}
+        >
+          {copied ? '✓ copied' : 'copy'}
+        </button>
+      </div>
+      {/* Code content */}
+      <pre
+        className='p-4 overflow-x-auto m-0 leading-relaxed'
+        style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: '12px',
+          color: '#c9c7f0',
+        }}
+      >
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
 // ─── Block-level parser ───────────────────────────────────────────────────────
 
 type Block =
+  | { kind: 'h1'; text: string }
   | { kind: 'h2'; text: string }
   | { kind: 'h3'; text: string }
-  | { kind: 'bullet'; text: string }
+  | { kind: 'bullet'; text: string; depth: number }
+  | { kind: 'ordered'; text: string; num: number }
   | { kind: 'table'; rows: string[][] }
+  | { kind: 'code'; lang: string; code: string }
+  | { kind: 'hr' }
   | { kind: 'blank' }
   | { kind: 'paragraph'; text: string };
 
@@ -1009,43 +1083,86 @@ function parseBlocks(raw: string): Block[] {
 
   while (i < lines.length) {
     const line = lines[i];
+    const trimmed = line.trim();
 
-    // Heading ##
-    if (line.startsWith('## ')) {
+    // ── Fenced code block  ```lang ... ``` ───
+    if (trimmed.startsWith('```')) {
+      const lang = trimmed.slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // consume closing ```
+      blocks.push({ kind: 'code', lang, code: codeLines.join('\n') });
+      continue;
+    }
+
+    // ── Horizontal rule  ---, ***, ___ ───
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      blocks.push({ kind: 'hr' });
+      i++;
+      continue;
+    }
+
+    // ── H1 ───
+    if (line.startsWith('# ') && !line.startsWith('## ')) {
+      blocks.push({ kind: 'h1', text: line.slice(2) });
+      i++;
+      continue;
+    }
+
+    // ── H2 ───
+    if (line.startsWith('## ') && !line.startsWith('### ')) {
       blocks.push({ kind: 'h2', text: line.slice(3) });
       i++;
       continue;
     }
 
-    // Heading ###
+    // ── H3 ───
     if (line.startsWith('### ')) {
       blocks.push({ kind: 'h3', text: line.slice(4) });
       i++;
       continue;
     }
 
-    // Bullet
-    if (line.startsWith('- ') || line.startsWith('• ')) {
-      blocks.push({ kind: 'bullet', text: line.slice(2) });
+    // ── Unordered bullet  - / * / • (with optional indent) ───
+    const bulletMatch = line.match(/^(\s*)([-*•])\s+(.+)$/);
+    if (bulletMatch) {
+      const depth = Math.floor(bulletMatch[1].length / 2); // 2 spaces = 1 level
+      blocks.push({ kind: 'bullet', text: bulletMatch[3], depth });
       i++;
       continue;
     }
 
-    // Blank line
-    if (line.trim() === '') {
+    // ── Ordered list  1. / 1) ───
+    const orderedMatch = line.match(/^\s*(\d+)[.)]\s+(.+)$/);
+    if (orderedMatch) {
+      blocks.push({
+        kind: 'ordered',
+        num: parseInt(orderedMatch[1], 10),
+        text: orderedMatch[2],
+      });
+      i++;
+      continue;
+    }
+
+    // ── Blank line ───
+    if (trimmed === '') {
       blocks.push({ kind: 'blank' });
       i++;
       continue;
     }
 
-    // Table — detected when current line has pipes AND next line is a separator
+    // ── Table  (header row followed immediately by separator) ───
     if (
       line.includes('|') &&
       i + 1 < lines.length &&
       isSeparatorRow(lines[i + 1])
     ) {
       const tableRows: string[][] = [];
-      tableRows.push(parseRow(line)); // header row
+      tableRows.push(parseRow(line));
       i += 2; // skip header + separator
       while (i < lines.length && lines[i].includes('|')) {
         tableRows.push(parseRow(lines[i]));
@@ -1055,7 +1172,7 @@ function parseBlocks(raw: string): Block[] {
       continue;
     }
 
-    // Plain paragraph
+    // ── Plain paragraph ───
     blocks.push({ kind: 'paragraph', text: line });
     i++;
   }
@@ -1066,10 +1183,23 @@ function parseBlocks(raw: string): Block[] {
 function AiTextContent({ text }: { text: string }) {
   const blocks = parseBlocks(text);
 
+  // Track ordered-list counter to reset between separate lists
+  const lastOrderedNum = -1;
+
   return (
     <div className='text-[#d4d2f0] text-sm sm:text-[15px] leading-[1.75] font-sans'>
       {blocks.map((block, i) => {
         switch (block.kind) {
+          case 'h1':
+            return (
+              <h1
+                key={i}
+                className='font-display font-black text-xl text-[#f0efff] mt-6 mb-2 tracking-tight'
+              >
+                {block.text}
+              </h1>
+            );
+
           case 'h2':
             return (
               <h2
@@ -1079,6 +1209,7 @@ function AiTextContent({ text }: { text: string }) {
                 {block.text}
               </h2>
             );
+
           case 'h3':
             return (
               <h3
@@ -1088,19 +1219,75 @@ function AiTextContent({ text }: { text: string }) {
                 {block.text}
               </h3>
             );
-          case 'bullet':
+
+          case 'bullet': {
+            const indent = block.depth * 16; // 16px per nesting level
+            // Use different bullet symbols per depth level
+            const bullets = ['◆', '◇', '·'];
+            const symbol = bullets[Math.min(block.depth, bullets.length - 1)];
             return (
-              <div key={i} className='flex gap-2.5 items-start my-1'>
-                <span className='text-[#7c5cfc] mt-2 text-[6px] shrink-0'>
-                  ◆
+              <div
+                key={i}
+                className='flex items-start my-1'
+                style={{ paddingLeft: indent }}
+              >
+                <span
+                  className='shrink-0 mt-2 mr-2.5'
+                  style={{
+                    color: block.depth === 0 ? '#7c5cfc' : '#4a4870',
+                    fontSize: block.depth === 0 ? '6px' : '8px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {symbol}
                 </span>
                 <span>{renderInline(block.text)}</span>
               </div>
             );
+          }
+
+          case 'ordered': {
+            // Reset visual counter when a new list starts (num goes back to 1)
+            if (block.num <= lastOrderedNum || lastOrderedNum === -1) {
+              // new list or continuation — just use block.num
+            }
+            // Track ordered-list counter to reset between separate lists
+            /* lastOrderedNum = block.num; */ // removed reassignment to avoid render-side mutation
+            return (
+              <div key={i} className='flex items-start my-1 gap-2.5'>
+                <span
+                  className='shrink-0 font-mono text-[11px] font-bold min-w-[18px] text-right mt-0.5'
+                  style={{ color: '#7c5cfc' }}
+                >
+                  {block.num}.
+                </span>
+                <span>{renderInline(block.text)}</span>
+              </div>
+            );
+          }
+
           case 'table':
             return <MarkdownTable key={i} rows={block.rows} />;
+
+          case 'code':
+            return <CodeBlock key={i} lang={block.lang} code={block.code} />;
+
+          case 'hr':
+            return (
+              <div
+                key={i}
+                className='my-4'
+                style={{
+                  height: '1px',
+                  background:
+                    'linear-gradient(90deg, transparent, rgba(124,92,252,0.3), transparent)',
+                }}
+              />
+            );
+
           case 'blank':
             return <div key={i} className='h-1.5' />;
+
           case 'paragraph':
             return (
               <p key={i} className='my-0.5'>
