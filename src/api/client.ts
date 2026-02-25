@@ -39,6 +39,53 @@ async function doRefresh(): Promise<boolean> {
   }
 }
 
+/**
+ * Builds Authorization headers using the current access token.
+ * Merges with any headers already in `init`.
+ */
+function authHeaders(init: RequestInit = {}): Record<string, string> {
+  const token = tokenStorage.getAccess();
+  return {
+    'Content-Type': 'application/json',
+    ...(init.headers as Record<string, string>),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+/**
+ * A fetch wrapper for endpoints that need token refresh but return
+ * a raw Response (e.g. SSE streams, file downloads) rather than JSON.
+ *
+ * On 401 it attempts a token refresh once, updates the Authorization
+ * header with the new token, and retries the request.
+ * On repeated 401 (refresh failed) it clears storage and redirects to /login.
+ */
+export async function fetchWithAuth(
+  url: string,
+  init: RequestInit = {},
+  retry = true,
+): Promise<Response> {
+  const res = await fetch(url, { ...init, headers: authHeaders(init) });
+
+  if (res.status === 401 && retry) {
+    if (!refreshPromise) refreshPromise = doRefresh();
+    const refreshed = await refreshPromise;
+    refreshPromise = null;
+
+    if (refreshed) {
+      // Retry with the freshly-minted token
+      return fetchWithAuth(url, init, false);
+    }
+
+    tokenStorage.clear();
+    window.location.href = '/login';
+    // Return the 401 response so callers can handle it if needed
+    return res;
+  }
+
+  return res;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;

@@ -1,4 +1,4 @@
-import { BASE_URL, tokenStorage } from './client';
+import { BASE_URL, fetchWithAuth } from './client';
 
 export type StreamMessageType =
   | { type: 'ai'; payload: { text: string } }
@@ -29,21 +29,23 @@ export function streamChat(
   callbacks: ChatStreamCallbacks,
 ): () => void {
   let isCancelled = false;
+
   (async () => {
     try {
-      const token = tokenStorage.getAccess();
-      const res = await fetch(`${BASE_URL}/chat`, {
+      // fetchWithAuth handles 401 → refresh → retry automatically,
+      // so the stream always starts with a valid token.
+      const res = await fetchWithAuth(`${BASE_URL}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, threadId }),
       });
+
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+
       while (!isCancelled) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -65,6 +67,7 @@ export function streamChat(
           }
         }
       }
+
       callbacks.onDone?.();
     } catch (err) {
       if (!isCancelled)
@@ -73,34 +76,30 @@ export function streamChat(
         );
     }
   })();
+
   return () => {
     isCancelled = true;
   };
 }
 
 export const chatApi = {
-  getHistory: (threadId?: string, limit = 50) => {
-    const token = tokenStorage.getAccess();
+  getHistory: async (threadId?: string, limit = 50) => {
     const params = new URLSearchParams();
     if (threadId) params.set('threadId', threadId);
     params.set('limit', String(limit));
-    return fetch(`${BASE_URL}/chat/history?${params}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    }).then((r) => r.json());
+    const res = await fetchWithAuth(`${BASE_URL}/chat/history?${params}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return res.json();
   },
-  deleteHistory: (threadId?: string) => {
-    const token = tokenStorage.getAccess();
+
+  deleteHistory: async (threadId?: string) => {
     const params = new URLSearchParams();
     if (threadId) params.set('threadId', threadId);
-    return fetch(`${BASE_URL}/chat/history?${params}`, {
+    const res = await fetchWithAuth(`${BASE_URL}/chat/history?${params}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    }).then((r) => r.json());
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return res.json();
   },
 };
