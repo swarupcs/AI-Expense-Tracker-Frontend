@@ -171,7 +171,6 @@ function TooltipBox({ label, value, color }: TipPayload) {
   );
 }
 
-// Fixed-position overlay for touch — never clipped by any parent overflow
 function FixedTooltip({
   label,
   value,
@@ -205,8 +204,6 @@ function FixedTooltip({
 }
 
 // ─── useChartTooltip ──────────────────────────────────────────────────────────
-// Uses a ref (not state) for lastInteraction so the Recharts content callback
-// always reads the current value synchronously — no stale closure, no double render.
 function useChartTooltip(
   data: Array<{
     label?: string;
@@ -269,7 +266,7 @@ function useChartTooltip(
 
   const onTouchStart = useCallback(
     (e: React.TouchEvent<HTMLDivElement>) => {
-      lastInteraction.current = 'touch'; // synchronous — read by rechartsContent before any re-render
+      lastInteraction.current = 'touch';
       e.stopPropagation();
       if (timerRef.current) clearTimeout(timerRef.current);
       const t = e.touches[0] ?? e.changedTouches[0];
@@ -293,7 +290,6 @@ function useChartTooltip(
     setTouchTip(null);
   }, []);
 
-  // Typed correctly against Recharts' TooltipProps — no overload errors
   const rechartsContent = useCallback(
     (props: TooltipProps<ValueType, NameType>) => {
       if (lastInteraction.current === 'touch') return null;
@@ -418,7 +414,6 @@ function usePieChartTooltip(
     setTouchTip(null);
   }, []);
 
-  // Typed correctly against Recharts' TooltipProps
   const rechartsContent = useCallback(
     (props: TooltipProps<ValueType, NameType>) => {
       if (lastInteraction.current === 'touch') return null;
@@ -904,6 +899,7 @@ function ToolResultBlock({
 }
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
+
 function renderInline(text: string): React.ReactNode {
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**'))
@@ -925,41 +921,193 @@ function renderInline(text: string): React.ReactNode {
   });
 }
 
+// ─── Table parser ─────────────────────────────────────────────────────────────
+
+/** Returns true if a line looks like a markdown separator: |---|---|--- */
+function isSeparatorRow(line: string): boolean {
+  return /^\|[\s\-|:]+\|$/.test(line.trim());
+}
+
+/** Split a markdown table row into trimmed cell strings */
+function parseRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\||\|$/g, '') // strip leading/trailing pipes
+    .split('|')
+    .map((c) => c.trim());
+}
+
+function MarkdownTable({ rows }: { rows: string[][] }) {
+  const [header, ...body] = rows;
+  return (
+    <div
+      className='w-full overflow-x-auto my-3 rounded-xl'
+      style={{ border: '1px solid rgba(124,92,252,0.18)' }}
+    >
+      <table className='w-full border-collapse text-sm'>
+        <thead>
+          <tr style={{ background: 'rgba(124,92,252,0.12)' }}>
+            {header.map((cell, i) => (
+              <th
+                key={i}
+                className='px-4 py-2.5 text-left font-mono text-[11px] uppercase tracking-widest'
+                style={{
+                  color: '#9d7fff',
+                  borderBottom: '1px solid rgba(124,92,252,0.18)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {renderInline(cell)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, ri) => (
+            <tr
+              key={ri}
+              style={{
+                background:
+                  ri % 2 === 0 ? 'transparent' : 'rgba(124,92,252,0.04)',
+                borderBottom:
+                  ri < body.length - 1
+                    ? '1px solid rgba(124,92,252,0.08)'
+                    : 'none',
+              }}
+            >
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className='px-4 py-2 font-sans text-[13px]'
+                  style={{ color: ci === 0 ? '#d4d2f0' : '#8b89b0' }}
+                >
+                  {renderInline(cell)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Block-level parser ───────────────────────────────────────────────────────
+
+type Block =
+  | { kind: 'h2'; text: string }
+  | { kind: 'h3'; text: string }
+  | { kind: 'bullet'; text: string }
+  | { kind: 'table'; rows: string[][] }
+  | { kind: 'blank' }
+  | { kind: 'paragraph'; text: string };
+
+function parseBlocks(raw: string): Block[] {
+  const lines = raw.split('\n');
+  const blocks: Block[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Heading ##
+    if (line.startsWith('## ')) {
+      blocks.push({ kind: 'h2', text: line.slice(3) });
+      i++;
+      continue;
+    }
+
+    // Heading ###
+    if (line.startsWith('### ')) {
+      blocks.push({ kind: 'h3', text: line.slice(4) });
+      i++;
+      continue;
+    }
+
+    // Bullet
+    if (line.startsWith('- ') || line.startsWith('• ')) {
+      blocks.push({ kind: 'bullet', text: line.slice(2) });
+      i++;
+      continue;
+    }
+
+    // Blank line
+    if (line.trim() === '') {
+      blocks.push({ kind: 'blank' });
+      i++;
+      continue;
+    }
+
+    // Table — detected when current line has pipes AND next line is a separator
+    if (
+      line.includes('|') &&
+      i + 1 < lines.length &&
+      isSeparatorRow(lines[i + 1])
+    ) {
+      const tableRows: string[][] = [];
+      tableRows.push(parseRow(line)); // header row
+      i += 2; // skip header + separator
+      while (i < lines.length && lines[i].includes('|')) {
+        tableRows.push(parseRow(lines[i]));
+        i++;
+      }
+      blocks.push({ kind: 'table', rows: tableRows });
+      continue;
+    }
+
+    // Plain paragraph
+    blocks.push({ kind: 'paragraph', text: line });
+    i++;
+  }
+
+  return blocks;
+}
+
 function AiTextContent({ text }: { text: string }) {
+  const blocks = parseBlocks(text);
+
   return (
     <div className='text-[#d4d2f0] text-sm sm:text-[15px] leading-[1.75] font-sans'>
-      {text.split('\n').map((line, i) => {
-        if (line.startsWith('### '))
-          return (
-            <h3
-              key={i}
-              className='font-display font-bold text-sm text-[#f0efff] mt-4 mb-1'
-            >
-              {line.slice(4)}
-            </h3>
-          );
-        if (line.startsWith('## '))
-          return (
-            <h2
-              key={i}
-              className='font-display font-extrabold text-base text-[#f0efff] mt-5 mb-1.5'
-            >
-              {line.slice(3)}
-            </h2>
-          );
-        if (line.startsWith('- ') || line.startsWith('• '))
-          return (
-            <div key={i} className='flex gap-2.5 items-start my-1'>
-              <span className='text-[#7c5cfc] mt-2 text-[6px] shrink-0'>◆</span>
-              <span>{renderInline(line.slice(2))}</span>
-            </div>
-          );
-        if (line.trim() === '') return <div key={i} className='h-1.5' />;
-        return (
-          <p key={i} className='my-0.5'>
-            {renderInline(line)}
-          </p>
-        );
+      {blocks.map((block, i) => {
+        switch (block.kind) {
+          case 'h2':
+            return (
+              <h2
+                key={i}
+                className='font-display font-extrabold text-base text-[#f0efff] mt-5 mb-1.5'
+              >
+                {block.text}
+              </h2>
+            );
+          case 'h3':
+            return (
+              <h3
+                key={i}
+                className='font-display font-bold text-sm text-[#f0efff] mt-4 mb-1'
+              >
+                {block.text}
+              </h3>
+            );
+          case 'bullet':
+            return (
+              <div key={i} className='flex gap-2.5 items-start my-1'>
+                <span className='text-[#7c5cfc] mt-2 text-[6px] shrink-0'>
+                  ◆
+                </span>
+                <span>{renderInline(block.text)}</span>
+              </div>
+            );
+          case 'table':
+            return <MarkdownTable key={i} rows={block.rows} />;
+          case 'blank':
+            return <div key={i} className='h-1.5' />;
+          case 'paragraph':
+            return (
+              <p key={i} className='my-0.5'>
+                {renderInline(block.text)}
+              </p>
+            );
+        }
       })}
     </div>
   );
