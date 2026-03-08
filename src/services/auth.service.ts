@@ -204,6 +204,39 @@ export function useUpdateUserSettings() {
   });
 }
 
+// ─── Profile Hooks ────────────────────────────────────────────────────────────
+
+export function useUpdateProfile() {
+  const setUser = useAuthStore((s) => s.setUser);
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const res = await authApi.updateProfile(name);
+      if (!res.success || !res.data) throw new Error(res.error ?? 'Failed to update profile');
+      return res.data;
+    },
+    onSuccess: (user) => {
+      setUser(user);
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  const logout = useAuthStore((s) => s.logout);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await authApi.deleteAccount();
+      if (!res.success) throw new Error(res.error ?? 'Failed to delete account');
+    },
+    onSuccess: async () => {
+      await logout();
+      queryClient.clear();
+      navigate('/login');
+    },
+  });
+}
+
 // Handle Google OAuth callback
 export function useGoogleCallback() {
   const [searchParams] = useSearchParams();

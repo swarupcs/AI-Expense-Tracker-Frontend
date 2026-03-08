@@ -114,4 +114,13 @@ export const authApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+
+  // Profile
+  updateProfile: (name: string) =>
+    request<PublicUser>('/user/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+  deleteAccount: () =>
+    request<void>('/user', { method: 'DELETE' }),
 };

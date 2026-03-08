@@ -7,6 +7,11 @@ import {
   Bell,
   LogOut,
   ChevronRight,
+  Pencil,
+  X,
+  Trash2,
+  ShieldAlert,
+  Calendar,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import {
@@ -14,7 +19,19 @@ import {
   useSignOut,
   useUserSettings,
   useUpdateUserSettings,
+  useUpdateProfile,
+  useDeleteAccount,
 } from '@/services/auth.service';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,6 +73,17 @@ export default function SettingsPage() {
   useEffect(() => {
     if (remoteSettings) setSettings(remoteSettings);
   }, [remoteSettings]);
+
+  // Profile edit
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const [nameSaved, setNameSaved] = useState(false);
+  const { mutate: updateProfile, isPending: isSavingName } = useUpdateProfile();
+
+  // Delete account
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const { mutate: deleteAccount, isPending: isDeletingAccount } = useDeleteAccount();
 
   // Password form
   const [showPasswordSheet, setShowPasswordSheet] = useState(false);
@@ -150,83 +178,108 @@ export default function SettingsPage() {
           >
             <CardHeader className='pb-0 px-4 pt-4'>
               <CardTitle className='text-[10px] font-mono text-[#4a4870] uppercase tracking-widest font-normal flex items-center gap-2'>
-                <User className='h-3.5 w-3.5 text-[#7c5cfc]' /> Account
+                <User className='h-3.5 w-3.5 text-[#7c5cfc]' /> Profile
               </CardTitle>
             </CardHeader>
             <Separator className='bg-[rgba(124,92,252,0.1)] mt-3' />
             <CardContent className='p-4 space-y-3'>
-              {/* Avatar + name row */}
+              {/* Avatar + summary */}
               {user && (
-                <div
-                  className='flex items-center gap-3 p-3 rounded-xl'
-                  style={{ background: 'rgba(8,8,16,0.6)' }}
-                >
+                <div className='flex items-center gap-3 p-3 rounded-xl' style={{ background: 'rgba(8,8,16,0.6)' }}>
                   <Avatar className='w-12 h-12 rounded-xl shrink-0'>
                     <AvatarFallback
                       className='rounded-xl font-bold text-lg text-[#9d7fff]'
-                      style={{
-                        background: 'rgba(124,92,252,0.2)',
-                        border: '1px solid rgba(124,92,252,0.3)',
-                      }}
+                      style={{ background: 'rgba(124,92,252,0.2)', border: '1px solid rgba(124,92,252,0.3)' }}
                     >
                       {user.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className='min-w-0 flex-1'>
-                    <p className='font-sans text-sm font-semibold text-[#f0efff] truncate'>
-                      {user.name}
-                    </p>
-                    <p className='font-mono text-[10px] text-[#4a4870] truncate'>
-                      {user.email}
-                    </p>
+                    <p className='font-sans text-sm font-semibold text-[#f0efff] truncate'>{user.name}</p>
+                    <p className='font-mono text-[10px] text-[#4a4870] truncate'>{user.email}</p>
                   </div>
-                  <Badge
-                    className='shrink-0 font-mono text-[9px] border-0'
-                    style={{
-                      background: 'rgba(0,255,135,0.1)',
-                      color: '#00ff87',
-                    }}
-                  >
+                  <Badge className='shrink-0 font-mono text-[9px] border-0' style={{ background: 'rgba(0,255,135,0.1)', color: '#00ff87' }}>
                     {user.role}
                   </Badge>
                 </div>
               )}
 
-              {/* Info rows */}
+              {/* Editable name row */}
+              <div className='rounded-xl overflow-hidden' style={{ background: 'rgba(8,8,16,0.6)' }}>
+                {editingName ? (
+                  <div className='flex items-center gap-2 px-3 py-2'>
+                    <Input
+                      value={nameValue}
+                      onChange={(e) => setNameValue(e.target.value)}
+                      autoFocus
+                      className='h-9 flex-1 bg-[rgba(124,92,252,0.08)] border-[rgba(124,92,252,0.2)] text-[#f0efff] focus-visible:ring-[#7c5cfc] text-sm'
+                    />
+                    <Button size='icon' variant='ghost'
+                      className='h-9 w-9 text-[#00ff87] hover:bg-[rgba(0,255,135,0.1)]'
+                      disabled={isSavingName}
+                      onClick={() => {
+                        if (!nameValue.trim() || nameValue.trim().length < 2) return;
+                        updateProfile(nameValue.trim(), {
+                          onSuccess: () => {
+                            setEditingName(false);
+                            setNameSaved(true);
+                            setTimeout(() => setNameSaved(false), 2500);
+                          },
+                        });
+                      }}
+                    >
+                      {isSavingName ? <Loader2 className='h-4 w-4 animate-spin' /> : <Check className='h-4 w-4' />}
+                    </Button>
+                    <Button size='icon' variant='ghost'
+                      className='h-9 w-9 text-[#4a4870] hover:text-[#8b89b0]'
+                      onClick={() => setEditingName(false)}
+                    >
+                      <X className='h-4 w-4' />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className='flex items-center justify-between px-3 py-2.5'>
+                    <span className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>Name</span>
+                    <div className='flex items-center gap-2'>
+                      {nameSaved && <Check className='h-3 w-3 text-[#00ff87]' />}
+                      <span className='font-sans text-sm text-[#f0efff]'>{user?.name ?? '—'}</span>
+                      <button
+                        onClick={() => { setNameValue(user?.name ?? ''); setEditingName(true); }}
+                        className='ml-1 p-1 rounded-lg text-[#4a4870] hover:text-[#9d7fff] hover:bg-[rgba(124,92,252,0.1)] transition-colors'
+                      >
+                        <Pencil className='h-3 w-3' />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Static info rows */}
               <div className='space-y-2'>
                 {[
-                  { label: 'Name', value: user?.name ?? '—' },
                   { label: 'Email', value: user?.email ?? '—' },
+                  {
+                    label: 'Provider',
+                    value: user?.authProvider === 'google' ? '🔵 Google' : '🔑 Email',
+                  },
+                  {
+                    label: 'Joined',
+                    value: user?.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '—',
+                    icon: Calendar,
+                  },
                 ].map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className='flex items-center justify-between px-3 py-2.5 rounded-xl'
-                    style={{ background: 'rgba(8,8,16,0.6)' }}
-                  >
-                    <span className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>
-                      {label}
-                    </span>
-                    <span className='font-sans text-sm text-[#f0efff] truncate max-w-[60%] text-right'>
-                      {value}
-                    </span>
+                  <div key={label} className='flex items-center justify-between px-3 py-2.5 rounded-xl' style={{ background: 'rgba(8,8,16,0.6)' }}>
+                    <span className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>{label}</span>
+                    <span className='font-sans text-sm text-[#f0efff] truncate max-w-[60%] text-right'>{value}</span>
                   </div>
                 ))}
 
-                {user?._count && (
-                  <div
-                    className='flex items-center justify-between px-3 py-2.5 rounded-xl'
-                    style={{ background: 'rgba(8,8,16,0.6)' }}
-                  >
-                    <span className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>
-                      Total Expenses
-                    </span>
-                    <Badge
-                      className='font-mono text-xs border-[rgba(124,92,252,0.2)]'
-                      style={{
-                        background: 'rgba(8,8,16,0.8)',
-                        color: '#f0efff',
-                      }}
-                    >
+                {user?._count !== undefined && (
+                  <div className='flex items-center justify-between px-3 py-2.5 rounded-xl' style={{ background: 'rgba(8,8,16,0.6)' }}>
+                    <span className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>Expenses</span>
+                    <Badge className='font-mono text-xs border-[rgba(124,92,252,0.2)]' style={{ background: 'rgba(8,8,16,0.8)', color: '#f0efff' }}>
                       {user._count.expenses} records
                     </Badge>
                   </div>
@@ -431,6 +484,35 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* ── Danger zone ── */}
+          <Card className='border-red-900/30 overflow-hidden' style={{ background: 'rgba(13,13,26,0.8)' }}>
+            <CardHeader className='pb-0 px-4 pt-4'>
+              <CardTitle className='text-[10px] font-mono text-red-500/70 uppercase tracking-widest font-normal flex items-center gap-2'>
+                <ShieldAlert className='h-3.5 w-3.5' /> Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <Separator className='bg-red-900/20 mt-3' />
+            <CardContent className='p-4'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='font-sans text-sm font-semibold text-[#f0efff]'>Delete Account</p>
+                  <p className='font-mono text-[10px] text-[#4a4870] mt-0.5'>
+                    Permanently delete your account and all data
+                  </p>
+                </div>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => { setDeleteConfirmText(''); setShowDeleteDialog(true); }}
+                  className='shrink-0 ml-4 border-red-900/40 text-red-400 hover:bg-red-900/20 hover:text-red-300 gap-1.5'
+                  style={{ background: 'rgba(255,59,92,0.05)' }}
+                >
+                  <Trash2 className='h-3.5 w-3.5' /> Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* ── App info ── */}
           <div className='text-center py-2'>
             <p className='font-mono text-[10px] text-[#4a4870]'>
@@ -524,6 +606,60 @@ export default function SettingsPage() {
           </form>
         </SheetContent>
       </Sheet>
+
+      {/* ── Delete account confirmation dialog ── */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent style={{ background: '#0d0d1a', border: '1px solid rgba(255,59,92,0.2)' }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className='text-[#f0efff] font-display flex items-center gap-2'>
+              <ShieldAlert className='h-5 w-5 text-red-400' /> Delete Account
+            </AlertDialogTitle>
+            <AlertDialogDescription className='text-[#8b89b0] font-mono text-xs space-y-3'>
+              <span className='block'>
+                This action is <span className='text-red-400 font-semibold'>permanent and irreversible</span>.
+                All your expenses, budgets, recurring entries, and settings will be deleted.
+              </span>
+              <span className='block mt-3'>
+                Type <span className='font-bold text-red-400'>DELETE</span> to confirm:
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder='Type DELETE to confirm'
+            className='h-10 border-red-900/40 text-[#f0efff] focus-visible:ring-red-500/30 focus-visible:border-red-500/40 font-mono text-sm'
+            style={{ background: 'rgba(255,59,92,0.06)' }}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='border-[rgba(124,92,252,0.2)] text-[#8b89b0] hover:text-[#f0efff]'
+              style={{ background: 'rgba(8,8,16,0.6)' }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirmText !== 'DELETE' || isDeletingAccount}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteAccount();
+              }}
+              className='gap-2 border-0 text-white'
+              style={{
+                background: deleteConfirmText === 'DELETE' ? 'rgba(255,59,92,0.8)' : 'rgba(255,59,92,0.2)',
+                cursor: deleteConfirmText === 'DELETE' ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {isDeletingAccount ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Trash2 className='h-4 w-4' />
+              )}
+              Delete My Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
