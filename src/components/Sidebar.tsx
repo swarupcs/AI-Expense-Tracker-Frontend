@@ -8,6 +8,7 @@ import {
   Settings,
   TrendingUp,
   Target,
+  RefreshCw,
   Zap,
   LogOut,
   ChevronLeft,
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/chat', label: 'AI Chat', icon: MessageSquare },
   { href: '/expenses', label: 'Expenses', icon: PieChart },
   { href: '/budget', label: 'Budgets', icon: Target },
+  { href: '/recurring', label: 'Recurring', icon: RefreshCw },
   { href: '/insights', label: 'Insights', icon: TrendingUp },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

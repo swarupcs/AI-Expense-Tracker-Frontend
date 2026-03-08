@@ -92,6 +92,53 @@ export const budgetApi = {
     request<void>(`/budgets/${id}`, { method: 'DELETE' }),
 };
 
+// ─── Recurring Expense types ──────────────────────────────────────────────────
+
+export type Frequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export interface RecurringExpense {
+  id: number;
+  title: string;
+  amount: number;
+  category: Category;
+  frequency: Frequency;
+  startDate: string;
+  nextDueDate: string;
+  isActive: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+}
+
+export interface CreateRecurringInput {
+  title: string;
+  amount: number;
+  category?: Category;
+  frequency: Frequency;
+  startDate: string;
+  notes?: string;
+}
+
+export interface UpdateRecurringInput {
+  title?: string;
+  amount?: number;
+  category?: Category;
+  frequency?: Frequency;
+  isActive?: boolean;
+  notes?: string;
+}
+
+export const recurringApi = {
+  list: () => request<RecurringExpense[]>('/recurring'),
+  create: (data: CreateRecurringInput) =>
+    request<RecurringExpense>('/recurring', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: UpdateRecurringInput) =>
+    request<RecurringExpense>(`/recurring/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: number) =>
+    request<void>(`/recurring/${id}`, { method: 'DELETE' }),
+};
+
 export const expensesApi = {
   list: (filters?: ExpenseFilters) => {
     const params = new URLSearchParams();
