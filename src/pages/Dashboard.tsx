@@ -2,6 +2,7 @@ import { useExpenseStats, useExpenses } from '@/services/expenses.service';
 import { useBudgetOverview } from '@/services/budget.service';
 import { useGoals } from '@/services/goals.service';
 import { useAuthStore } from '@/store/auth.store';
+import { useFmt } from '@/hooks/useCurrency';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -121,6 +122,7 @@ function StatCard({
 
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
+  const fmt = useFmt();
 
   const { currentMonthFrom, currentMonthTo, currentMonthParam } = useMemo(() => {
     const now = new Date();
@@ -238,7 +240,7 @@ export default function Dashboard() {
           <div className='grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3'>
             <StatCard
               label='Total Spent'
-              value={`₹${(stats?.total ?? 0).toLocaleString('en-IN')}`}
+              value={fmt(stats?.total ?? 0)}
               icon={DollarSign}
               sub={
                 <>
@@ -250,7 +252,7 @@ export default function Dashboard() {
             />
             <StatCard
               label='Avg Transaction'
-              value={`₹${Math.round(stats?.average ?? 0).toLocaleString('en-IN')}`}
+              value={fmt(Math.round(stats?.average ?? 0))}
               icon={BarChart2}
               sub={`${stats?.count ?? 0} transactions`}
               accent='#00d4ff'
@@ -260,7 +262,7 @@ export default function Dashboard() {
               label='Top Category'
               value={stats?.byCategory[0]?.category ?? 'None'}
               icon={Activity}
-              sub={`₹${(stats?.byCategory[0]?.amount ?? 0).toLocaleString('en-IN')} spent`}
+              sub={`${fmt(stats?.byCategory[0]?.amount ?? 0)} spent`}
               accent='#ff2d78'
               isLoading={isLoading}
             />
@@ -312,7 +314,7 @@ export default function Dashboard() {
                         </div>
                         <div className='flex items-center gap-2'>
                           <span className='font-mono text-[10px] text-[#8b89b0]'>
-                            ₹{b.spent.toLocaleString('en-IN')} / ₹{b.limit.toLocaleString('en-IN')}
+                            {fmt(b.spent)} / {fmt(b.limit)}
                           </span>
                           <span
                             className='font-mono text-[10px] font-bold'
@@ -547,7 +549,7 @@ export default function Dashboard() {
                             className='font-mono text-[10px]'
                             style={{ color: d.color }}
                           >
-                            ₹{d.value.toLocaleString('en-IN')}
+                            {fmt(d.value)}
                           </span>
                         </div>
                       ))}
@@ -618,7 +620,7 @@ export default function Dashboard() {
                         color: CATEGORY_COLORS[exp.category] ?? '#9d7fff',
                       }}
                     >
-                      ₹{exp.amount.toLocaleString('en-IN')}
+                      {fmt(exp.convertedAmount)}
                     </div>
                   </div>
                 ))}

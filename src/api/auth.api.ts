@@ -36,6 +36,7 @@ export interface UserSettings {
   budgetAlerts: boolean;
   weeklyReport: boolean;
   onboardingCompleted: boolean;
+  currency: string;
 }
 
 export interface TokenPair {

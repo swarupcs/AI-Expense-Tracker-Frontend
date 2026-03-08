@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   Trash2,
@@ -9,6 +9,7 @@ import {
   Search,
   Loader2,
   SlidersHorizontal,
+  RefreshCw,
 } from 'lucide-react';
 import { ExportDialog } from '@/components/ExportDialog';
 import {
@@ -23,6 +24,8 @@ import type {
   ExpenseFilters,
   CreateExpenseInput,
 } from '@/api/expenses.api';
+import { CURRENCIES, getCurrencySymbol } from '@/api/currency.api';
+import { useUserCurrency, useExchangeRates, useFmt } from '@/hooks/useCurrency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,6 +104,8 @@ const EMPTY_FORM = {
   amount: '',
   date: new Date().toISOString().split('T')[0],
   notes: '',
+  currency: 'INR',
+  exchangeRate: '1',
 };
 
 // ─── Expense Form ─────────────────────────────────────────────────────────────
@@ -112,6 +117,7 @@ function ExpenseForm({
   formError,
   onSubmit,
   onCancel,
+  homeCurrency,
 }: {
   editingId: number | null;
   formData: typeof EMPTY_FORM;
@@ -120,7 +126,30 @@ function ExpenseForm({
   formError: string;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  homeCurrency: string;
 }) {
+  const isForeign = formData.currency !== homeCurrency;
+  const { data: rates, isFetching: fetchingRates } = useExchangeRates(
+    isForeign ? formData.currency : homeCurrency,
+  );
+
+  // Auto-fill exchange rate when currency changes
+  useEffect(() => {
+    if (!isForeign) {
+      setFormData((p) => ({ ...p, exchangeRate: '1' }));
+      return;
+    }
+    if (rates) {
+      const rate = rates[homeCurrency];
+      if (rate) setFormData((p) => ({ ...p, exchangeRate: rate.toFixed(4) }));
+    }
+  }, [formData.currency, rates, isForeign, homeCurrency, setFormData]);
+
+  const previewConverted =
+    isForeign && formData.amount && formData.exchangeRate
+      ? (parseFloat(formData.amount) * parseFloat(formData.exchangeRate)).toFixed(2)
+      : null;
+
   return (
     <form onSubmit={onSubmit} className='space-y-4'>
       {formError && (
@@ -150,23 +179,67 @@ function ExpenseForm({
         />
       </div>
 
-      {/* Amount */}
-      <div className='space-y-1.5'>
-        <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
-          Amount (₹)
-        </Label>
-        <Input
-          type='number'
-          step='0.01'
-          inputMode='decimal'
-          value={formData.amount}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, amount: e.target.value }))
-          }
-          placeholder='0.00'
-          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)] h-11'
-        />
+      {/* Amount + Currency row */}
+      <div className='grid grid-cols-[1fr_140px] gap-2'>
+        <div className='space-y-1.5'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+            Amount ({getCurrencySymbol(formData.currency)})
+          </Label>
+          <Input
+            type='number'
+            step='0.01'
+            inputMode='decimal'
+            value={formData.amount}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, amount: e.target.value }))
+            }
+            placeholder='0.00'
+            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)] h-11'
+          />
+        </div>
+        <div className='space-y-1.5'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
+            Currency
+          </Label>
+          <Select
+            value={formData.currency}
+            onValueChange={(v) => setFormData((p) => ({ ...p, currency: v }))}
+          >
+            <SelectTrigger className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] h-11'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]' style={{ maxHeight: '280px' }}>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code} className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'>
+                  {c.code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Exchange rate row (shown only for foreign currency) */}
+      {isForeign && (
+        <div className='space-y-1.5'>
+          <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest flex items-center gap-1.5'>
+            Rate ({formData.currency} → {homeCurrency})
+            {fetchingRates && <RefreshCw className='h-3 w-3 animate-spin text-[#7c5cfc]' />}
+          </Label>
+          <Input
+            type='number'
+            step='0.0001'
+            value={formData.exchangeRate}
+            onChange={(e) => setFormData((p) => ({ ...p, exchangeRate: e.target.value }))}
+            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 h-11'
+          />
+          {previewConverted && (
+            <p className='font-mono text-[10px] text-[#00d4ff]'>
+              ≈ {getCurrencySymbol(homeCurrency)}{Number(previewConverted).toLocaleString()} {homeCurrency}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Category + Date side by side */}
       <div className='grid grid-cols-2 gap-3'>
@@ -268,7 +341,9 @@ function MobileExpenseCard({
   onEdit: (exp: Expense) => void;
   onDelete: (exp: Expense) => void;
 }) {
+  const homeCurrency = useUserCurrency();
   const color = CATEGORY_COLORS[exp.category] ?? '#4a4870';
+  const isForeign = exp.currency && exp.currency !== homeCurrency;
   return (
     <Card
       className='border-[rgba(124,92,252,0.08)] active:border-[rgba(124,92,252,0.2)] transition-all'
@@ -312,12 +387,16 @@ function MobileExpenseCard({
 
           {/* Amount + actions */}
           <div className='flex flex-col items-end gap-2 shrink-0'>
-            <span
-              className='font-display text-base font-bold'
-              style={{ color }}
-            >
-              ₹{exp.amount.toLocaleString('en-IN')}
-            </span>
+            <div className='text-right'>
+              <span className='font-display text-base font-bold block' style={{ color }}>
+                {new Intl.NumberFormat(undefined, { style: 'currency', currency: exp.currency ?? homeCurrency, maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(exp.amount)}
+              </span>
+              {isForeign && (
+                <span className='font-mono text-[9px] text-[#4a4870]'>
+                  ≈ {new Intl.NumberFormat(undefined, { style: 'currency', currency: homeCurrency, maximumFractionDigits: 0 }).format(exp.convertedAmount)}
+                </span>
+              )}
+            </div>
             <div className='flex gap-1.5'>
               <button
                 onClick={() => onEdit(exp)}
@@ -351,6 +430,9 @@ function MobileExpenseCard({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
+  const homeCurrency = useUserCurrency();
+  const fmt = useFmt();
+
   const [filters, setFilters] = useState<ExpenseFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
@@ -359,7 +441,7 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formData, setFormData] = useState({ ...EMPTY_FORM, currency: homeCurrency });
   const [formError, setFormError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Expense | null>(null);
   const [showExport, setShowExport] = useState(false);
@@ -373,7 +455,7 @@ export default function ExpensesPage() {
 
   const expenses = data?.expenses ?? [];
   const isSaving = isCreating || isUpdating;
-  const totalAmount = expenses.reduce((s, e) => s + e.amount, 0);
+  const totalAmount = expenses.reduce((s, e) => s + e.convertedAmount, 0);
 
   const handleCategorySelect = (cat: Category | null) => {
     setSelectedCategory(cat);
@@ -389,7 +471,7 @@ export default function ExpensesPage() {
   const resetForm = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData(EMPTY_FORM);
+    setFormData({ ...EMPTY_FORM, currency: homeCurrency });
     setFormError('');
   };
 
@@ -403,6 +485,8 @@ export default function ExpensesPage() {
     const payload: CreateExpenseInput = {
       title: formData.title,
       amount: parseFloat(formData.amount),
+      currency: formData.currency,
+      exchangeRate: parseFloat(formData.exchangeRate) || 1,
       category: formData.category,
       date: formData.date,
       notes: formData.notes || undefined,
@@ -428,6 +512,8 @@ export default function ExpensesPage() {
       amount: exp.amount.toString(),
       date: exp.date,
       notes: exp.notes ?? '',
+      currency: exp.currency ?? homeCurrency,
+      exchangeRate: (exp.exchangeRate ?? 1).toString(),
     });
     setEditingId(exp.id);
     setShowForm(true);
@@ -457,7 +543,7 @@ export default function ExpensesPage() {
             <p className='font-mono text-[10px] text-[#4a4870]'>
               {isLoading
                 ? 'Loading…'
-                : `${expenses.length} transactions · ₹${totalAmount.toLocaleString('en-IN')}`}
+                : `${expenses.length} transactions · ${fmt(totalAmount)}`}
             </p>
           </div>
 
@@ -685,11 +771,15 @@ export default function ExpensesPage() {
                               {CATEGORY_LABEL[exp.category]}
                             </span>
                           </td>
-                          <td
-                            className='px-5 py-3.5 font-display text-sm font-bold'
-                            style={{ color }}
-                          >
-                            ₹{exp.amount.toLocaleString('en-IN')}
+                          <td className='px-5 py-3.5'>
+                            <div className='font-display text-sm font-bold' style={{ color }}>
+                              {new Intl.NumberFormat(undefined, { style: 'currency', currency: exp.currency ?? homeCurrency, maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(exp.amount)}
+                            </div>
+                            {exp.currency && exp.currency !== homeCurrency && (
+                              <div className='font-mono text-[9px] text-[#4a4870] mt-0.5'>
+                                ≈ {fmt(exp.convertedAmount)}
+                              </div>
+                            )}
                           </td>
                           <td className='px-5 py-3.5 font-mono text-[11px] text-[#4a4870]'>
                             {new Date(exp.date).toLocaleDateString('en-IN', {
@@ -777,6 +867,7 @@ export default function ExpensesPage() {
             formError={formError}
             onSubmit={handleSubmit}
             onCancel={resetForm}
+            homeCurrency={homeCurrency}
           />
         </SheetContent>
       </Sheet>
@@ -816,6 +907,7 @@ export default function ExpensesPage() {
               formError={formError}
               onSubmit={handleSubmit}
               onCancel={resetForm}
+              homeCurrency={homeCurrency}
             />
           </div>
         </div>

@@ -14,6 +14,9 @@ export interface Expense {
   id: number;
   title: string;
   amount: number;
+  currency: string;
+  exchangeRate: number;
+  convertedAmount: number;
   category: Category;
   date: string;
   notes?: string;
@@ -43,6 +46,8 @@ export interface ExpenseFilters {
 export interface CreateExpenseInput {
   title: string;
   amount: number;
+  currency?: string;
+  exchangeRate?: number;
   category?: Category;
   date?: string;
   notes?: string;
@@ -51,6 +56,8 @@ export interface CreateExpenseInput {
 export interface UpdateExpenseInput {
   title?: string;
   amount?: number;
+  currency?: string;
+  exchangeRate?: number;
   category?: Category;
   date?: string;
   notes?: string;

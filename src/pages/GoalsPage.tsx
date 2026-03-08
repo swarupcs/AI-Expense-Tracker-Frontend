@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from '@/services/goals.service';
+import { useFmt } from '@/hooks/useCurrency';
 import type { FinancialGoal, GoalType, CreateGoalInput } from '@/api/goals.api';
 import type { Category } from '@/api/expenses.api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -62,10 +63,6 @@ const CATEGORY_EMOJI: Record<string, string> = {
   EDUCATION: '📚', OTHER: '📦',
 };
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-}
-
 function currentMonthStr() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -103,11 +100,13 @@ function GoalCard({
   onEdit,
   onDelete,
   onAdjust,
+  fmt,
 }: {
   goal: FinancialGoal;
   onEdit: (g: FinancialGoal) => void;
   onDelete: (id: number) => void;
   onAdjust: (id: number, delta: number) => void;
+  fmt: (n: number) => string;
 }) {
   const isSavings = goal.type === 'SAVINGS';
   const isOver = goal.type === 'SPENDING_LIMIT' && goal.progress >= 100;
@@ -259,6 +258,7 @@ const BLANK: CreateGoalInput = {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function GoalsPage() {
+  const fmt = useFmt();
   const { data: goals = [], isLoading } = useGoals();
   const { mutate: createGoal, isPending: isCreating } = useCreateGoal();
   const { mutate: updateGoal, isPending: isUpdating } = useUpdateGoal();
@@ -430,6 +430,7 @@ export default function GoalsPage() {
                   onEdit={openEdit}
                   onDelete={(id) => setDeleteId(id)}
                   onAdjust={handleAdjust}
+                  fmt={fmt}
                 />
               ))}
             </div>

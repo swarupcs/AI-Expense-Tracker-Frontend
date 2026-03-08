@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit2, Target, AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
 import { useBudgetOverview, useUpsertBudget, useDeleteBudget } from '@/services/budget.service';
+import { useFmt } from '@/hooks/useCurrency';
 import type { Category, UpsertBudgetInput } from '@/api/expenses.api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +66,7 @@ function BudgetCard({
   onEdit: (item: typeof item) => void;
   onDelete: (item: typeof item) => void;
 }) {
+  const fmt = useFmt();
   const color = CATEGORY_COLORS[item.category];
   const pct = Math.min(item.percentage, 100);
   const statusColor = item.isOverBudget ? '#ff3b5c' : item.percentage >= 80 ? '#ffb830' : '#00ff87';
@@ -98,10 +100,10 @@ function BudgetCard({
                 )}
                 <span className='font-mono text-[9px]' style={{ color: statusColor }}>
                   {item.isOverBudget
-                    ? `₹${Math.abs(item.remaining).toLocaleString('en-IN')} over budget`
+                    ? `${fmt(Math.abs(item.remaining))} over budget`
                     : item.percentage >= 80
                     ? `${item.percentage}% used — almost there`
-                    : `₹${item.remaining.toLocaleString('en-IN')} remaining`}
+                    : `${fmt(item.remaining)} remaining`}
                 </span>
               </div>
             </div>
@@ -146,10 +148,10 @@ function BudgetCard({
         {/* Amount row */}
         <div className='flex items-center justify-between'>
           <span className='font-mono text-[10px] text-[#4a4870]'>
-            ₹{item.spent.toLocaleString('en-IN')} spent
+            {fmt(item.spent)} spent
           </span>
           <span className='font-mono text-[10px]' style={{ color }}>
-            ₹{item.limit.toLocaleString('en-IN')} limit
+            {fmt(item.limit)} limit
           </span>
         </div>
       </CardContent>
@@ -228,7 +230,7 @@ function BudgetForm({
 
       <div className='space-y-1.5'>
         <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
-          Monthly Limit (₹)
+          Monthly Limit
         </Label>
         <Input
           type='number'
@@ -267,6 +269,7 @@ function BudgetForm({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function BudgetPage() {
+  const fmt = useFmt();
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -357,9 +360,9 @@ export default function BudgetPage() {
                   </div>
                   <div className='text-right'>
                     <p className='font-mono text-[10px] text-[#4a4870]'>
-                      ₹{totalSpent.toLocaleString('en-IN')}
+                      {fmt(totalSpent)}
                       <span className='text-[#2d2b4e]'> / </span>
-                      ₹{totalLimit.toLocaleString('en-IN')}
+                      {fmt(totalLimit)}
                     </p>
                     {overBudgetCount > 0 && (
                       <div className='flex items-center gap-1 mt-1 justify-end'>

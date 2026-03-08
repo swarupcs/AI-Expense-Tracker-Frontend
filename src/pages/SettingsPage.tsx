@@ -53,6 +53,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CURRENCIES } from '@/api/currency.api';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -66,6 +74,7 @@ export default function SettingsPage() {
     emailNotifications: true,
     budgetAlerts: true,
     weeklyReport: false,
+    currency: 'INR',
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -479,6 +488,69 @@ export default function SettingsPage() {
                   </>
                 ) : (
                   'Save Preferences'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* ── Currency ── */}
+          <Card
+            className='border-[rgba(124,92,252,0.12)] overflow-hidden'
+            style={{ background: 'rgba(13,13,26,0.8)' }}
+          >
+            <CardHeader className='pb-0 px-4 pt-4'>
+              <CardTitle className='text-[10px] font-mono text-[#4a4870] uppercase tracking-widest font-normal flex items-center gap-2'>
+                <span className='text-[#7c5cfc]'>$</span> Currency
+              </CardTitle>
+              <CardDescription className='text-[#4a4870] text-xs font-mono'>
+                All amounts will display in this currency
+              </CardDescription>
+            </CardHeader>
+            <Separator className='bg-[rgba(124,92,252,0.1)] mt-3' />
+            <CardContent className='p-4 space-y-3'>
+              <div className='space-y-1.5'>
+                <Label className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>
+                  Home currency
+                </Label>
+                <Select
+                  value={settings.currency}
+                  onValueChange={(v) => setSettings((p) => ({ ...p, currency: v }))}
+                >
+                  <SelectTrigger
+                    className='h-11 border-[rgba(124,92,252,0.15)] text-[#f0efff] focus:ring-[#7c5cfc]/30'
+                    style={{ background: 'rgba(8,8,16,0.6)' }}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent style={{ background: '#0d0d1a', border: '1px solid rgba(124,92,252,0.2)', maxHeight: '320px' }}>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code} className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'>
+                        <span className='font-mono text-xs mr-2 text-[#9d7fff]'>{c.symbol}</span>
+                        {c.code} — {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => {
+                  saveSettings({ currency: settings.currency }, {
+                    onSuccess: () => {
+                      setSettingsSaved(true);
+                      setTimeout(() => setSettingsSaved(false), 2500);
+                    },
+                  });
+                }}
+                disabled={isSavingSettings}
+                className='w-full h-10 gap-2 text-white font-display font-bold'
+                style={{ background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)' }}
+              >
+                {isSavingSettings ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : settingsSaved ? (
+                  <><Check className='h-4 w-4' /> Saved!</>
+                ) : (
+                  'Save Currency'
                 )}
               </Button>
             </CardContent>
