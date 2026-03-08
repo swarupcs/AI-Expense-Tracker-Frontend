@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Sidebar } from '@/components/Sidebar';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
+import { OnboardingFlow } from '@/components/OnboardingFlow';
+import { useUserSettings } from '@/services/auth.service';
 import Dashboard from '@/pages/Dashboard';
 import ChatPage from '@/pages/ChatPage';
 import ExpensesPage from '@/pages/ExpensesPage';
@@ -24,6 +26,16 @@ const queryClient = new QueryClient({
 });
 
 function AppShell() {
+  const { data: settings, isLoading: settingsLoading } = useUserSettings();
+  // Local override: once user completes onboarding in this session, hide immediately
+  const [dismissed, setDismissed] = useState(false);
+
+  const showOnboarding =
+    !dismissed &&
+    !settingsLoading &&
+    settings !== undefined &&
+    settings.onboardingCompleted === false;
+
   return (
     <div
       style={{
@@ -34,6 +46,9 @@ function AppShell() {
         background: '#080810',
       }}
     >
+      {/* Onboarding overlay — shown only for new users */}
+      {showOnboarding && <OnboardingFlow onComplete={() => setDismissed(true)} />}
+
       {/* Email verification banner — shown above everything when email unverified */}
       <EmailVerificationBanner />
 

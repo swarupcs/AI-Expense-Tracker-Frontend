@@ -35,6 +35,7 @@ export interface UserSettings {
   emailNotifications: boolean;
   budgetAlerts: boolean;
   weeklyReport: boolean;
+  onboardingCompleted: boolean;
 }
 
 export interface TokenPair {
