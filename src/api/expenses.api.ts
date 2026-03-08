@@ -56,6 +56,42 @@ export interface UpdateExpenseInput {
   notes?: string;
 }
 
+// ─── Budget types ─────────────────────────────────────────────────────────────
+
+export interface Budget {
+  id: number;
+  category: Category;
+  amount: number;
+  updatedAt: string;
+}
+
+export interface BudgetOverviewItem {
+  id: number;
+  category: Category;
+  limit: number;
+  spent: number;
+  remaining: number;
+  percentage: number;
+  isOverBudget: boolean;
+}
+
+export interface UpsertBudgetInput {
+  category: Category;
+  amount: number;
+}
+
+export const budgetApi = {
+  list: () => request<Budget[]>('/budgets'),
+  overview: (month?: string) => {
+    const qs = month ? `?month=${month}` : '';
+    return request<BudgetOverviewItem[]>(`/budgets/overview${qs}`);
+  },
+  upsert: (data: UpsertBudgetInput) =>
+    request<Budget>('/budgets', { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) =>
+    request<void>(`/budgets/${id}`, { method: 'DELETE' }),
+};
+
 export const expensesApi = {
   list: (filters?: ExpenseFilters) => {
     const params = new URLSearchParams();

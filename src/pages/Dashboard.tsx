@@ -1,6 +1,8 @@
 import { useExpenseStats, useExpenses } from '@/services/expenses.service';
+import { useBudgetOverview } from '@/services/budget.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   BarChart,
   Bar,
@@ -19,6 +21,9 @@ import {
   BarChart2,
   Activity,
   Sparkles,
+  Target,
+  ArrowRight,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -115,17 +120,18 @@ function StatCard({
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
 
-  const { currentMonthFrom, currentMonthTo } = useMemo(() => {
+  const { currentMonthFrom, currentMonthTo, currentMonthParam } = useMemo(() => {
     const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
     return {
-      currentMonthFrom: new Date(now.getFullYear(), now.getMonth(), 1)
-        .toISOString()
-        .split('T')[0],
-      currentMonthTo: new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0],
+      currentMonthFrom: new Date(y, now.getMonth(), 1).toISOString().split('T')[0],
+      currentMonthTo: new Date(y, now.getMonth() + 1, 0).toISOString().split('T')[0],
+      currentMonthParam: `${y}-${m}`,
     };
   }, []);
+
+  const { data: budgetOverview } = useBudgetOverview(currentMonthParam);
 
   const { data: statsData, isLoading: statsLoading } = useExpenseStats(
     currentMonthFrom,
@@ -256,6 +262,86 @@ export default function Dashboard() {
               isLoading={isLoading}
             />
           </div>
+
+          {/* ── Budget Overview ── */}
+          {budgetOverview && budgetOverview.length > 0 && (
+            <Card
+              className='border-[rgba(124,92,252,0.12)]'
+              style={{ background: 'rgba(13,13,26,0.7)', backdropFilter: 'blur(20px)' }}
+            >
+              <CardHeader className='pb-2 px-4 pt-4'>
+                <div className='flex items-center justify-between'>
+                  <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-semibold'>
+                    <div
+                      className='w-0.5 h-4 rounded-sm'
+                      style={{ background: 'linear-gradient(180deg, #7c5cfc, #ffb830)' }}
+                    />
+                    <Target className='w-3.5 h-3.5 text-[#7c5cfc]' />
+                    Budget Overview
+                  </CardTitle>
+                  <Link
+                    to='/budget'
+                    className='flex items-center gap-1 font-mono text-[10px] text-[#7c5cfc] hover:text-[#9d7fff] transition-colors'
+                  >
+                    Manage <ArrowRight className='w-3 h-3' />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className='px-4 pb-4 space-y-3'>
+                {budgetOverview.slice(0, 4).map((b) => {
+                  const pct = Math.min(b.percentage, 100);
+                  const barColor = b.isOverBudget
+                    ? '#ff2d78'
+                    : b.percentage >= 80
+                    ? '#ffb830'
+                    : '#00ff87';
+                  return (
+                    <div key={b.id}>
+                      <div className='flex items-center justify-between mb-1'>
+                        <div className='flex items-center gap-1.5'>
+                          <span className='text-sm'>{CATEGORY_EMOJI[b.category] ?? '📦'}</span>
+                          <span className='font-sans text-[12px] font-medium text-[#f0efff]'>
+                            {b.category}
+                          </span>
+                          {b.isOverBudget && (
+                            <AlertTriangle className='w-3 h-3 text-[#ff2d78]' />
+                          )}
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <span className='font-mono text-[10px] text-[#8b89b0]'>
+                            ₹{b.spent.toLocaleString('en-IN')} / ₹{b.limit.toLocaleString('en-IN')}
+                          </span>
+                          <span
+                            className='font-mono text-[10px] font-bold'
+                            style={{ color: barColor }}
+                          >
+                            {Math.round(b.percentage)}%
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className='h-1.5 rounded-full overflow-hidden'
+                        style={{ background: 'rgba(124,92,252,0.1)' }}
+                      >
+                        <div
+                          className='h-full rounded-full transition-all duration-500'
+                          style={{
+                            width: `${pct}%`,
+                            background: b.isOverBudget
+                              ? 'linear-gradient(90deg, #ff2d78, #ff6b6b)'
+                              : b.percentage >= 80
+                              ? 'linear-gradient(90deg, #ffb830, #ff6b30)'
+                              : 'linear-gradient(90deg, #00ff87, #00d4ff)',
+                            boxShadow: `0 0 8px ${barColor}60`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           {/* ── Charts ── */}
           {!isLoading && expenses.length > 0 && (
