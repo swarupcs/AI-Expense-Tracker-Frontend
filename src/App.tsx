@@ -14,6 +14,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import BudgetPage from '@/pages/BudgetPage';
 import RecurringPage from '@/pages/RecurringPage';
 import GoalsPage from '@/pages/GoalsPage';
+import BillingPage from '@/pages/BillingPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import GoogleCallbackPage from '@/pages/GoogleCallbackPage';
@@ -105,6 +106,7 @@ function AppShell() {
             <Route path='/budget' element={<BudgetPage />} />
             <Route path='/recurring' element={<RecurringPage />} />
             <Route path='/goals' element={<GoalsPage />} />
+            <Route path='/billing' element={<BillingPage />} />
             <Route path='*' element={<Navigate to='/' replace />} />
           </Routes>
         </div>

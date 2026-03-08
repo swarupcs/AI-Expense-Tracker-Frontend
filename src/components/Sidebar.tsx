@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useSignOut } from '@/services/auth.service';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/recurring', label: 'Recurring', icon: RefreshCw },
   { href: '/goals', label: 'Goals', icon: Trophy },
   { href: '/insights', label: 'Insights', icon: TrendingUp },
+  { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
