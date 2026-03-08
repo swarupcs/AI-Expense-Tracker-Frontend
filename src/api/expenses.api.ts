@@ -1,4 +1,4 @@
-import { request } from './client';
+import { request, fetchWithAuth, BASE_URL } from './client';
 
 export type Category =
   | 'DINING'
@@ -176,4 +176,13 @@ export const expensesApi = {
       method: 'DELETE',
       body: JSON.stringify({ ids }),
     }),
+  exportCsv: (filters?: { from?: string; to?: string; category?: Category; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.from) params.set('from', filters.from);
+    if (filters?.to) params.set('to', filters.to);
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.search) params.set('search', filters.search);
+    const qs = params.toString();
+    return fetchWithAuth(`${BASE_URL}/expenses/export${qs ? `?${qs}` : ''}`);
+  },
 };

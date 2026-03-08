@@ -10,6 +10,7 @@ import {
   Loader2,
   SlidersHorizontal,
 } from 'lucide-react';
+import { ExportDialog } from '@/components/ExportDialog';
 import {
   useExpenses,
   useCreateExpense,
@@ -361,6 +362,7 @@ export default function ExpensesPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Expense | null>(null);
+  const [showExport, setShowExport] = useState(false);
 
   const { data, isLoading } = useExpenses(filters);
   const { mutateAsync: createExpense, isPending: isCreating } =
@@ -431,17 +433,6 @@ export default function ExpensesPage() {
     setShowForm(true);
   };
 
-  const handleExport = () => {
-    const rows = expenses.map((e) =>
-      [e.title, e.category, e.amount, e.date].join(','),
-    );
-    const csv = ['Title,Category,Amount,Date', ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'expenses.csv';
-    a.click();
-  };
 
   return (
     <div
@@ -475,7 +466,7 @@ export default function ExpensesPage() {
             <Button
               variant='outline'
               size='sm'
-              onClick={handleExport}
+              onClick={() => setShowExport(true)}
               className='hidden sm:flex gap-1.5 border-[rgba(124,92,252,0.18)] text-[#8b89b0] hover:text-[#f0efff] hover:border-[rgba(124,92,252,0.35)]'
             >
               <Download className='w-3.5 h-3.5' /> Export
@@ -744,7 +735,7 @@ export default function ExpensesPage() {
               <div className='sm:hidden pt-1'>
                 <Button
                   variant='outline'
-                  onClick={handleExport}
+                  onClick={() => setShowExport(true)}
                   className='w-full h-11 gap-2 border-[rgba(124,92,252,0.18)] text-[#8b89b0] hover:text-[#f0efff]'
                 >
                   <Download className='w-4 h-4' /> Export CSV
@@ -877,6 +868,15 @@ export default function ExpensesPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ── Export dialog ── */}
+      <ExportDialog
+        open={showExport}
+        onClose={() => setShowExport(false)}
+        defaultFrom={filters.from}
+        defaultTo={filters.to}
+        defaultCategory={filters.category}
+      />
 
       {/* ── Delete confirm dialog ── */}
       <AlertDialog
