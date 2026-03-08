@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Sidebar } from '@/components/Sidebar';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
 import Dashboard from '@/pages/Dashboard';
 import ChatPage from '@/pages/ChatPage';
 import ExpensesPage from '@/pages/ExpensesPage';
@@ -11,6 +12,9 @@ import SettingsPage from '@/pages/SettingsPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import GoogleCallbackPage from '@/pages/GoogleCallbackPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import { useAuthStore } from '@/store/auth.store';
 
 const queryClient = new QueryClient({
@@ -22,11 +26,16 @@ function AppShell() {
     <div
       style={{
         display: 'flex',
+        flexDirection: 'column',
         height: '100vh',
         overflow: 'hidden',
         background: '#080810',
       }}
     >
+      {/* Email verification banner — shown above everything when email unverified */}
+      <EmailVerificationBanner />
+
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
       <Sidebar />
 
       {/*
@@ -79,6 +88,7 @@ function AppShell() {
           </Routes>
         </div>
       </main>
+      </div>
     </div>
   );
 }
@@ -99,6 +109,9 @@ function App() {
           <Routes>
             <Route path='/login' element={<LoginPage />} />
             <Route path='/signup' element={<SignupPage />} />
+            <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+            <Route path='/reset-password' element={<ResetPasswordPage />} />
+            <Route path='/verify-email' element={<VerifyEmailPage />} />
             <Route
               path='/auth/google/callback'
               element={<GoogleCallbackPage />}

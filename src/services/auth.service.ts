@@ -5,6 +5,7 @@ import {
   type SignUpInput,
   type SignInInput,
   type ChangePasswordInput,
+  type UserSettings,
 } from '@/api/auth.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useEffect } from 'react';
@@ -118,6 +119,88 @@ export function useGoogleAuthUrl() {
       return res.data.url;
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Password Reset Hooks ─────────────────────────────────────────────────────
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const res = await authApi.forgotPassword(email);
+      if (!res.success) throw new Error(res.error ?? 'Request failed');
+      return res;
+    },
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async ({
+      token,
+      newPassword,
+      confirmPassword,
+    }: {
+      token: string;
+      newPassword: string;
+      confirmPassword: string;
+    }) => {
+      const res = await authApi.resetPassword(token, newPassword, confirmPassword);
+      if (!res.success) throw new Error(res.error ?? 'Reset failed');
+      return res;
+    },
+  });
+}
+
+// ─── Email Verification Hooks ─────────────────────────────────────────────────
+
+export function useVerifyEmail() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const res = await authApi.verifyEmail(token);
+      if (!res.success) throw new Error(res.error ?? 'Verification failed');
+      return res;
+    },
+  });
+}
+
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const res = await authApi.resendVerification(email);
+      if (!res.success) throw new Error(res.error ?? 'Request failed');
+      return res;
+    },
+  });
+}
+
+// ─── User Settings Hooks ──────────────────────────────────────────────────────
+
+export function useUserSettings() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: ['user', 'settings'],
+    queryFn: async () => {
+      const res = await authApi.getUserSettings();
+      if (!res.success || !res.data) throw new Error(res.error ?? 'Failed to load settings');
+      return res.data;
+    },
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUpdateUserSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Partial<UserSettings>) => {
+      const res = await authApi.updateUserSettings(data);
+      if (!res.success) throw new Error(res.error ?? 'Failed to save settings');
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['user', 'settings'], data);
+    },
   });
 }
 

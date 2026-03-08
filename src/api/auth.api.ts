@@ -27,7 +27,14 @@ export interface PublicUser {
   googleId?: string;
   googlePicture?: string;
   authProvider?: string;
+  emailVerified?: boolean;
   _count?: { expenses: number };
+}
+
+export interface UserSettings {
+  emailNotifications: boolean;
+  budgetAlerts: boolean;
+  weeklyReport: boolean;
 }
 
 export interface TokenPair {
@@ -73,5 +80,37 @@ export const authApi = {
     request<AuthResult>('/auth/google/token', {
       method: 'POST',
       body: JSON.stringify({ idToken }),
+    }),
+
+  // Password reset
+  forgotPassword: (email: string) =>
+    request<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, newPassword: string, confirmPassword: string) =>
+    request<void>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword, confirmPassword }),
+    }),
+
+  // Email verification
+  verifyEmail: (token: string) =>
+    request<void>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  resendVerification: (email: string) =>
+    request<void>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  // User settings
+  getUserSettings: () => request<UserSettings>('/user/settings'),
+  updateUserSettings: (data: Partial<UserSettings>) =>
+    request<UserSettings>('/user/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     }),
 };

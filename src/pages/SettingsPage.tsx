@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Check,
   Loader2,
@@ -9,7 +9,12 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { useChangePassword, useSignOut } from '@/services/auth.service';
+import {
+  useChangePassword,
+  useSignOut,
+  useUserSettings,
+  useUpdateUserSettings,
+} from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,12 +41,21 @@ export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
   const { mutate: signOut } = useSignOut();
 
+  // Load settings from backend
+  const { data: remoteSettings } = useUserSettings();
+  const { mutate: saveSettings, isPending: isSavingSettings } = useUpdateUserSettings();
+
   const [settings, setSettings] = useState({
     emailNotifications: true,
     budgetAlerts: true,
     weeklyReport: false,
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
+
+  // Sync remote settings into local state when loaded
+  useEffect(() => {
+    if (remoteSettings) setSettings(remoteSettings);
+  }, [remoteSettings]);
 
   // Password form
   const [showPasswordSheet, setShowPasswordSheet] = useState(false);
@@ -391,15 +405,22 @@ export default function SettingsPage() {
               ))}
               <Button
                 onClick={() => {
-                  setSettingsSaved(true);
-                  setTimeout(() => setSettingsSaved(false), 2000);
+                  saveSettings(settings, {
+                    onSuccess: () => {
+                      setSettingsSaved(true);
+                      setTimeout(() => setSettingsSaved(false), 2500);
+                    },
+                  });
                 }}
+                disabled={isSavingSettings}
                 className='w-full h-11 gap-2 text-white font-display font-bold mt-1'
                 style={{
                   background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
                 }}
               >
-                {settingsSaved ? (
+                {isSavingSettings ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : settingsSaved ? (
                   <>
                     <Check className='h-4 w-4' /> Saved!
                   </>
