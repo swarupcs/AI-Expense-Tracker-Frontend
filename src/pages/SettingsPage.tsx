@@ -434,7 +434,7 @@ export default function SettingsPage() {
           {/* ── App info ── */}
           <div className='text-center py-2'>
             <p className='font-mono text-[10px] text-[#4a4870]'>
-              ExpenseAI · v1.0.0
+              Spendly · v1.0.0
             </p>
             <p className='font-mono text-[9px] text-[#4a4870] opacity-50 mt-0.5'>
               AI-powered expense tracking

@@ -129,7 +129,7 @@ function DesktopNavItems({ isExpanded }: { isExpanded: boolean }) {
         {isExpanded && (
           <div>
             <div className='font-display text-lg font-extrabold text-[--foreground] tracking-tight'>
-              ExpenseAI
+              Spendly
             </div>
             <div className='font-mono text-[9px] text-[--foreground-subtle] tracking-wider uppercase'>
               Smart Tracking
@@ -360,7 +360,7 @@ function MobileTopBar() {
         </div>
         <div>
           <span className='font-display text-base font-extrabold text-[--foreground] tracking-tight'>
-            ExpenseAI
+            Spendly
           </span>
           <span className='font-mono text-[9px] text-[#4a4870] tracking-widest uppercase ml-2 hidden xs:inline'>
             Smart Tracking

@@ -81,7 +81,7 @@ export default function SignupPage() {
           </div>
           <div>
             <div className='font-display text-lg sm:text-xl font-extrabold text-[#f0efff] tracking-tight'>
-              ExpenseAI
+              Spendly
             </div>
             <div className='font-mono text-[9px] text-[#4a4870] tracking-[0.15em] uppercase'>
               Smart Tracking
