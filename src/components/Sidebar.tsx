@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Target,
   RefreshCw,
+  Trophy,
   Zap,
   LogOut,
   ChevronLeft,
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: PieChart },
   { href: '/budget', label: 'Budgets', icon: Target },
   { href: '/recurring', label: 'Recurring', icon: RefreshCw },
+  { href: '/goals', label: 'Goals', icon: Trophy },
   { href: '/insights', label: 'Insights', icon: TrendingUp },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

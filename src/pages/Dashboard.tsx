@@ -1,5 +1,6 @@
 import { useExpenseStats, useExpenses } from '@/services/expenses.service';
 import { useBudgetOverview } from '@/services/budget.service';
+import { useGoals } from '@/services/goals.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -22,6 +23,7 @@ import {
   Activity,
   Sparkles,
   Target,
+  Trophy,
   ArrowRight,
   AlertTriangle,
 } from 'lucide-react';
@@ -132,6 +134,7 @@ export default function Dashboard() {
   }, []);
 
   const { data: budgetOverview } = useBudgetOverview(currentMonthParam);
+  const { data: goals } = useGoals();
 
   const { data: statsData, isLoading: statsLoading } = useExpenseStats(
     currentMonthFrom,
@@ -342,6 +345,69 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
+
+          {/* ── Goals Overview ── */}
+          {goals && goals.length > 0 && (() => {
+            const topGoals = goals.slice(0, 3);
+            const completedCount = goals.filter((g) => g.isCompleted).length;
+            return (
+              <Card
+                className='border-[rgba(124,92,252,0.12)]'
+                style={{ background: 'rgba(13,13,26,0.7)', backdropFilter: 'blur(20px)' }}
+              >
+                <CardHeader className='pb-2 px-4 pt-4'>
+                  <CardTitle className='flex items-center justify-between text-[#f0efff] font-display text-sm font-semibold'>
+                    <div className='flex items-center gap-2'>
+                      <div className='w-0.5 h-4 rounded-sm' style={{ background: 'linear-gradient(180deg, #ffb830, #00ff87)' }} />
+                      <Trophy className='w-3.5 h-3.5 text-[#ffb830]' />
+                      Financial Goals
+                    </div>
+                    <Link
+                      to='/goals'
+                      className='flex items-center gap-1 font-mono text-[10px] text-[#4a4870] hover:text-[#9d7fff] transition-colors'
+                    >
+                      {completedCount}/{goals.length} done <ArrowRight className='h-3 w-3' />
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className='px-4 pb-4 space-y-2.5'>
+                  {topGoals.map((goal) => {
+                    const isSavings = goal.type === 'SAVINGS';
+                    const isOver = !isSavings && goal.progress >= 100;
+                    const barColor = goal.isCompleted ? '#00ff87' : isOver ? '#ff3b5c' : isSavings ? '#7c5cfc' : '#00d4ff';
+                    const fmt = (n: number) =>
+                      new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+                    return (
+                      <div key={goal.id} className='space-y-1.5'>
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2 min-w-0'>
+                            <span className='font-mono text-[9px] px-1.5 py-0.5 rounded' style={{ background: `${barColor}15`, color: barColor }}>
+                              {isSavings ? '🎯' : '📉'}
+                            </span>
+                            <span className='font-sans text-xs text-[#f0efff] truncate'>{goal.name}</span>
+                          </div>
+                          <span className='font-mono text-[10px] shrink-0 ml-2' style={{ color: barColor }}>
+                            {goal.progress}%
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <div className='flex-1 h-1.5 rounded-full overflow-hidden' style={{ background: 'rgba(124,92,252,0.1)' }}>
+                            <div
+                              className='h-full rounded-full transition-all duration-500'
+                              style={{ width: `${Math.min(goal.progress, 100)}%`, background: barColor }}
+                            />
+                          </div>
+                          <span className='font-mono text-[9px] text-[#4a4870] shrink-0'>
+                            {fmt(goal.currentAmount)} / {fmt(goal.targetAmount)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* ── Charts ── */}
           {!isLoading && expenses.length > 0 && (
