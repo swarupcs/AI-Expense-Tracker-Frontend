@@ -12,6 +12,7 @@ import {
   Trash2,
   ShieldAlert,
   Calendar,
+  BellRing,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import {
@@ -77,10 +78,14 @@ export default function SettingsPage() {
     currency: 'INR',
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState('');
 
   // Sync remote settings into local state when loaded
   useEffect(() => {
-    if (remoteSettings) setSettings(remoteSettings);
+    if (remoteSettings) {
+      setSettings(remoteSettings);
+      setAlertThreshold(remoteSettings.alertThreshold != null ? String(remoteSettings.alertThreshold) : '');
+    }
   }, [remoteSettings]);
 
   // Profile edit
@@ -551,6 +556,71 @@ export default function SettingsPage() {
                   <><Check className='h-4 w-4' /> Saved!</>
                 ) : (
                   'Save Currency'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* ── Smart Alerts ── */}
+          <Card
+            className='border-[rgba(124,92,252,0.12)] overflow-hidden'
+            style={{ background: 'rgba(13,13,26,0.8)' }}
+          >
+            <CardHeader className='pb-0 px-4 pt-4'>
+              <CardTitle className='text-[10px] font-mono text-[#4a4870] uppercase tracking-widest font-normal flex items-center gap-2'>
+                <BellRing className='h-3.5 w-3.5 text-[#7c5cfc]' /> Smart Alerts
+              </CardTitle>
+              <CardDescription className='text-[#4a4870] text-xs font-mono'>
+                Get notified about unusual spending
+              </CardDescription>
+            </CardHeader>
+            <Separator className='bg-[rgba(124,92,252,0.1)] mt-3' />
+            <CardContent className='p-4 space-y-3'>
+              <div
+                className='p-3 rounded-xl'
+                style={{ background: 'rgba(8,8,16,0.6)' }}
+              >
+                <div className='space-y-1.5'>
+                  <Label className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>
+                    Large expense alert
+                  </Label>
+                  <p className='font-sans text-xs text-[#4a4870]'>
+                    Get notified when a single expense exceeds this amount (leave empty to disable)
+                  </p>
+                  <Input
+                    type='number'
+                    min='0'
+                    step='any'
+                    value={alertThreshold}
+                    onChange={(e) => setAlertThreshold(e.target.value)}
+                    placeholder='e.g. 5000'
+                    className='h-11 border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.4)] mt-1'
+                    style={{ background: 'rgba(8,8,16,0.8)' }}
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  saveSettings(
+                    { alertThreshold: alertThreshold ? parseFloat(alertThreshold) : null },
+                    {
+                      onSuccess: () => {
+                        setSettingsSaved(true);
+                        setTimeout(() => setSettingsSaved(false), 2500);
+                      },
+                    },
+                  );
+                }}
+                disabled={isSavingSettings}
+                className='w-full h-10 gap-2 text-white font-display font-bold'
+                style={{ background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)' }}
+              >
+                {isSavingSettings ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : settingsSaved ? (
+                  <><Check className='h-4 w-4' /> Saved!</>
+                ) : (
+                  'Save Alert Settings'
                 )}
               </Button>
             </CardContent>

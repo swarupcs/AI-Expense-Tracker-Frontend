@@ -37,6 +37,7 @@ export interface UserSettings {
   weeklyReport: boolean;
   onboardingCompleted: boolean;
   currency: string;
+  alertThreshold: number | null;
 }
 
 export interface TokenPair {
