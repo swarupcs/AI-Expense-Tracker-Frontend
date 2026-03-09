@@ -55,6 +55,16 @@ const CATEGORY_COLORS: Record<Category, string> = {
   EDUCATION: '#5b8fff', OTHER: '#4a4870',
 };
 
+type BudgetItem = {
+  id: number;
+  category: Category;
+  limit: number;
+  spent: number;
+  remaining: number;
+  percentage: number;
+  isOverBudget: boolean;
+};
+
 // ─── Budget Progress Card ─────────────────────────────────────────────────────
 
 function BudgetCard({
@@ -62,14 +72,18 @@ function BudgetCard({
   onEdit,
   onDelete,
 }: {
-  item: { id: number; category: Category; limit: number; spent: number; remaining: number; percentage: number; isOverBudget: boolean };
-  onEdit: (item: typeof item) => void;
-  onDelete: (item: typeof item) => void;
+  item: BudgetItem;
+  onEdit: (item: BudgetItem) => void;
+  onDelete: (item: BudgetItem) => void;
 }) {
   const fmt = useFmt();
   const color = CATEGORY_COLORS[item.category];
   const pct = Math.min(item.percentage, 100);
-  const statusColor = item.isOverBudget ? '#ff3b5c' : item.percentage >= 80 ? '#ffb830' : '#00ff87';
+  const statusColor = item.isOverBudget
+    ? '#ff3b5c'
+    : item.percentage >= 80
+      ? '#ffb830'
+      : '#00ff87';
 
   return (
     <Card
@@ -82,7 +96,10 @@ function BudgetCard({
           <div className='flex items-center gap-2.5'>
             <div
               className='w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0'
-              style={{ background: `${color}15`, border: `1px solid ${color}25` }}
+              style={{
+                background: `${color}15`,
+                border: `1px solid ${color}25`,
+              }}
             >
               {CATEGORY_EMOJI[item.category]}
             </div>
@@ -92,18 +109,30 @@ function BudgetCard({
               </p>
               <div className='flex items-center gap-1.5 mt-0.5'>
                 {item.isOverBudget ? (
-                  <AlertTriangle className='w-3 h-3' style={{ color: '#ff3b5c' }} />
+                  <AlertTriangle
+                    className='w-3 h-3'
+                    style={{ color: '#ff3b5c' }}
+                  />
                 ) : item.percentage >= 80 ? (
-                  <AlertTriangle className='w-3 h-3' style={{ color: '#ffb830' }} />
+                  <AlertTriangle
+                    className='w-3 h-3'
+                    style={{ color: '#ffb830' }}
+                  />
                 ) : (
-                  <CheckCircle2 className='w-3 h-3' style={{ color: '#00ff87' }} />
+                  <CheckCircle2
+                    className='w-3 h-3'
+                    style={{ color: '#00ff87' }}
+                  />
                 )}
-                <span className='font-mono text-[9px]' style={{ color: statusColor }}>
+                <span
+                  className='font-mono text-[9px]'
+                  style={{ color: statusColor }}
+                >
                   {item.isOverBudget
                     ? `${fmt(Math.abs(item.remaining))} over budget`
                     : item.percentage >= 80
-                    ? `${item.percentage}% used — almost there`
-                    : `${fmt(item.remaining)} remaining`}
+                      ? `${item.percentage}% used — almost there`
+                      : `${fmt(item.remaining)} remaining`}
                 </span>
               </div>
             </div>
@@ -112,14 +141,22 @@ function BudgetCard({
             <button
               onClick={() => onEdit(item)}
               className='w-8 h-8 rounded-lg flex items-center justify-center transition-colors'
-              style={{ background: 'rgba(91,143,255,0.1)', border: '1px solid rgba(91,143,255,0.2)', color: '#5b8fff' }}
+              style={{
+                background: 'rgba(91,143,255,0.1)',
+                border: '1px solid rgba(91,143,255,0.2)',
+                color: '#5b8fff',
+              }}
             >
               <Edit2 className='w-3.5 h-3.5' />
             </button>
             <button
               onClick={() => onDelete(item)}
               className='w-8 h-8 rounded-lg flex items-center justify-center transition-colors'
-              style={{ background: 'rgba(255,59,92,0.08)', border: '1px solid rgba(255,59,92,0.2)', color: '#ff3b5c' }}
+              style={{
+                background: 'rgba(255,59,92,0.08)',
+                border: '1px solid rgba(255,59,92,0.2)',
+                color: '#ff3b5c',
+              }}
             >
               <Trash2 className='w-3.5 h-3.5' />
             </button>
@@ -138,8 +175,8 @@ function BudgetCard({
               background: item.isOverBudget
                 ? 'linear-gradient(90deg, #ff3b5c, #ff6b8a)'
                 : item.percentage >= 80
-                ? 'linear-gradient(90deg, #ffb830, #ffd080)'
-                : `linear-gradient(90deg, ${color}, ${color}cc)`,
+                  ? 'linear-gradient(90deg, #ffb830, #ffd080)'
+                  : `linear-gradient(90deg, ${color}, ${color}cc)`,
               boxShadow: `0 0 8px ${statusColor}40`,
             }}
           />
@@ -275,12 +312,12 @@ export default function BudgetPage() {
   const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   const { data: overview = [], isLoading } = useBudgetOverview(currentMonth);
-  const { mutate: upsertBudget, isPending: isSaving } = useUpsertBudget();
+  const { mutate: upsertBudget } = useUpsertBudget();
   const { mutate: deleteBudget } = useDeleteBudget();
 
   const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<typeof overview[0] | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<typeof overview[0] | null>(null);
+const [editingItem, setEditingItem] = useState<BudgetItem | null>(null);
+const [deleteConfirm, setDeleteConfirm] = useState<BudgetItem | null>(null);
 
   const usedCategories = overview.map((o) => o.category);
   const overBudgetCount = overview.filter((o) => o.isOverBudget).length;

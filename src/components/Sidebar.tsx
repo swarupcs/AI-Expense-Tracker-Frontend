@@ -8,13 +8,13 @@ import {
   Settings,
   TrendingUp,
   Target,
-  RefreshCw,
-  Trophy,
+  // RefreshCw,
+  // Trophy,
   Zap,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
+  // CreditCard,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useSignOut } from '@/services/auth.service';
@@ -28,10 +28,10 @@ const navItems = [
   { href: '/chat', label: 'AI Chat', icon: MessageSquare },
   { href: '/expenses', label: 'Expenses', icon: PieChart },
   { href: '/budget', label: 'Budgets', icon: Target },
-  { href: '/recurring', label: 'Recurring', icon: RefreshCw },
-  { href: '/goals', label: 'Goals', icon: Trophy },
+  // { href: '/recurring', label: 'Recurring', icon: RefreshCw },
+  // { href: '/goals', label: 'Goals', icon: Trophy },
   { href: '/insights', label: 'Insights', icon: TrendingUp },
-  { href: '/billing', label: 'Billing', icon: CreditCard },
+  // { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
