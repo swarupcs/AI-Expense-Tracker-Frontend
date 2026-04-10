@@ -15,6 +15,8 @@ import BudgetPage from '@/pages/BudgetPage';
 import RecurringPage from '@/pages/RecurringPage';
 import GoalsPage from '@/pages/GoalsPage';
 import BillingPage from '@/pages/BillingPage';
+import FinancePage from '@/pages/FinancePage';
+import ImportPage from '@/pages/ImportPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import GoogleCallbackPage from '@/pages/GoogleCallbackPage';
@@ -29,7 +31,6 @@ const queryClient = new QueryClient({
 
 function AppShell() {
   const { data: settings, isLoading: settingsLoading } = useUserSettings();
-  // Local override: once user completes onboarding in this session, hide immediately
   const [dismissed, setDismissed] = useState(false);
 
   const showOnboarding =
@@ -48,69 +49,56 @@ function AppShell() {
         background: '#080810',
       }}
     >
-      {/* Onboarding overlay — shown only for new users */}
-      {showOnboarding && <OnboardingFlow onComplete={() => setDismissed(true)} />}
-
-      {/* Email verification banner — shown above everything when email unverified */}
+      {showOnboarding && (
+        <OnboardingFlow onComplete={() => setDismissed(true)} />
+      )}
       <EmailVerificationBanner />
-
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-      <Sidebar />
-
-      {/*
-        KEY FIX: `overflow: hidden` here is intentional — it clips the main
-        container so each PAGE can independently manage its own scroll via
-        an inner `overflow-y: auto` div. This prevents the entire shell from
-        scrolling and allows the header to stay sticky within each page.
-
-        On mobile the top header is 56px and the bottom nav is 64px, so we
-        pad the top and bottom accordingly via CSS variables.
-      */}
-      <main
-        className='flex-1 relative'
-        style={{
-          overflow: 'hidden',
-          // On mobile: push content below fixed top bar + above bottom nav
-          paddingTop: 'var(--mobile-header-height, 0px)',
-          paddingBottom: 'var(--mobile-bottomnav-height, 0px)',
-        }}
-      >
-        {/* Subtle grid overlay */}
-        <div
+        <Sidebar />
+        <main
+          className='flex-1 relative'
           style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage:
-              'linear-gradient(rgba(124,92,252,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(124,92,252,0.025) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        />
-
-        {/* Page content — fills remaining height so pages can scroll internally */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            height: '100%',
             overflow: 'hidden',
+            paddingTop: 'var(--mobile-header-height, 0px)',
+            paddingBottom: 'var(--mobile-bottomnav-height, 0px)',
           }}
         >
-          <Routes>
-            <Route path='/' element={<Dashboard />} />
-            <Route path='/chat' element={<ChatPage />} />
-            <Route path='/expenses' element={<ExpensesPage />} />
-            <Route path='/insights' element={<InsightsPage />} />
-            <Route path='/settings' element={<SettingsPage />} />
-            <Route path='/budget' element={<BudgetPage />} />
-            <Route path='/recurring' element={<RecurringPage />} />
-            <Route path='/goals' element={<GoalsPage />} />
-            <Route path='/billing' element={<BillingPage />} />
-            <Route path='*' element={<Navigate to='/' replace />} />
-          </Routes>
-        </div>
-      </main>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage:
+                'linear-gradient(rgba(124,92,252,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(124,92,252,0.025) 1px, transparent 1px)',
+              backgroundSize: '48px 48px',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            <Routes>
+              <Route path='/' element={<Dashboard />} />
+              <Route path='/chat' element={<ChatPage />} />
+              <Route path='/expenses' element={<ExpensesPage />} />
+              <Route path='/insights' element={<InsightsPage />} />
+              <Route path='/settings' element={<SettingsPage />} />
+              <Route path='/budget' element={<BudgetPage />} />
+              <Route path='/recurring' element={<RecurringPage />} />
+              <Route path='/goals' element={<GoalsPage />} />
+              <Route path='/billing' element={<BillingPage />} />
+              {/* NEW PAGES */}
+              <Route path='/finance' element={<FinancePage />} />
+              <Route path='/import' element={<ImportPage />} />
+              <Route path='*' element={<Navigate to='/' replace />} />
+            </Routes>
+          </div>
+        </main>
       </div>
     </div>
   );
