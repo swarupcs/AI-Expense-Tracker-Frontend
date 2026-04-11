@@ -145,6 +145,7 @@ export default function Dashboard() {
   const { data: expData, isLoading: expLoading } = useExpenses({
     from: currentMonthFrom,
     to: currentMonthTo,
+    limit: 500,
   });
 
   const isLoading = statsLoading || expLoading;

@@ -5,6 +5,7 @@ import {
   type UpdateExpenseInput,
   type ExpenseFilters,
 } from '@/api/expenses.api';
+import { useAuthStore } from '@/store/auth.store';
 
 export const expenseKeys = {
   all: ['expenses'] as const,
@@ -29,6 +30,7 @@ export function useExpenses(filters?: ExpenseFilters) {
 }
 
 export function useExpenseStats(from?: string, to?: string) {
+   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: expenseKeys.stats(from, to),
     queryFn: async () => {
@@ -36,6 +38,7 @@ export function useExpenseStats(from?: string, to?: string) {
       if (!res.success) throw new Error(res.error ?? 'Failed to fetch stats');
       return res.data!;
     },
+    enabled: isAuthenticated,
     staleTime: 30 * 1000,
   });
 }
