@@ -3,7 +3,7 @@ import { useBudgetOverview } from '@/services/budget.service';
 import { useGoals } from '@/services/goals.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useFmt } from '@/hooks/useCurrency';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BarChart,
@@ -27,8 +27,64 @@ import {
   Trophy,
   ArrowRight,
   AlertTriangle,
+  ChevronDown,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Period = 'weekly' | 'monthly' | 'yearly';
+
+// ─── Period helpers ───────────────────────────────────────────────────────────
+
+function getDateRange(period: Period): {
+  from: string;
+  to: string;
+  label: string;
+  monthParam: string;
+} {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  if (period === 'weekly') {
+    const dayOfWeek = now.getDay(); // 0 = Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return {
+      from: fmt(monday),
+      to: fmt(sunday),
+      label: `${monday.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`,
+      monthParam: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
+    };
+  }
+
+  if (period === 'yearly') {
+    const jan1 = new Date(now.getFullYear(), 0, 1);
+    const dec31 = new Date(now.getFullYear(), 11, 31);
+    return {
+      from: fmt(jan1),
+      to: fmt(dec31),
+      label: String(now.getFullYear()),
+      monthParam: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
+    };
+  }
+
+  // monthly (default)
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    from: fmt(firstDay),
+    to: fmt(lastDay),
+    label: now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+    monthParam: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
+  };
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
   DINING: '#ff2d78',
@@ -62,6 +118,91 @@ const PIE_COLORS = [
   '#5b8fff',
   '#4a4870',
 ];
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: 'weekly', label: 'This Week' },
+  { value: 'monthly', label: 'This Month' },
+  { value: 'yearly', label: 'This Year' },
+];
+
+// ─── Period Dropdown ──────────────────────────────────────────────────────────
+
+function PeriodDropdown({
+  value,
+  onChange,
+}: {
+  value: Period;
+  onChange: (p: Period) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = PERIOD_OPTIONS.find((o) => o.value === value)!;
+
+  return (
+    <div className='relative'>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className='flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono text-[10px] uppercase tracking-wider transition-all'
+        style={{
+          background: 'rgba(124,92,252,0.1)',
+          border: '1px solid rgba(124,92,252,0.25)',
+          color: '#9d7fff',
+        }}
+      >
+        {current.label}
+        <ChevronDown
+          className='w-3 h-3 transition-transform'
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </button>
+
+      {open && (
+        <>
+          {/* backdrop */}
+          <div className='fixed inset-0 z-10' onClick={() => setOpen(false)} />
+          <div
+            className='absolute right-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden py-1 min-w-[140px]'
+            style={{
+              background: '#0d0d1a',
+              border: '1px solid rgba(124,92,252,0.25)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className='w-full text-left px-4 py-2.5 font-mono text-[10px] uppercase tracking-wider transition-colors'
+                style={{
+                  color: opt.value === value ? '#9d7fff' : '#8b89b0',
+                  background:
+                    opt.value === value
+                      ? 'rgba(124,92,252,0.12)'
+                      : 'transparent',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'rgba(124,92,252,0.08)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background =
+                    opt.value === value
+                      ? 'rgba(124,92,252,0.12)'
+                      : 'transparent')
+                }
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({
   label,
@@ -120,43 +261,59 @@ function StatCard({
   );
 }
 
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
+
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const fmt = useFmt();
+  const [period, setPeriod] = useState<Period>('monthly');
 
-  const { currentMonthFrom, currentMonthTo, currentMonthParam } = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    return {
-      currentMonthFrom: new Date(y, now.getMonth(), 1).toISOString().split('T')[0],
-      currentMonthTo: new Date(y, now.getMonth() + 1, 0).toISOString().split('T')[0],
-      currentMonthParam: `${y}-${m}`,
-    };
-  }, []);
+  const {
+    from,
+    to,
+    label: periodLabel,
+    monthParam,
+  } = useMemo(() => getDateRange(period), [period]);
 
-  const { data: budgetOverview } = useBudgetOverview(currentMonthParam);
+  const { data: budgetOverview } = useBudgetOverview(monthParam);
   const { data: goals } = useGoals();
 
   const { data: statsData, isLoading: statsLoading } = useExpenseStats(
-    currentMonthFrom,
-    currentMonthTo,
+    from,
+    to,
   );
   const { data: expData, isLoading: expLoading } = useExpenses({
-    from: currentMonthFrom,
-    to: currentMonthTo,
+    from,
+    to,
     limit: 500,
   });
-
-  // console.log({expData})
 
   const isLoading = statsLoading || expLoading;
   const expenses = expData?.expenses ?? [];
   const stats = statsData;
 
-  const barData = expenses
-    .slice(0, 14)
-    .map((e) => ({ date: e.date.slice(5), amount: e.amount }));
+  // Build bar chart data — group by date (day for week, month for year, day for month)
+  const barData = useMemo(() => {
+    if (period === 'yearly') {
+      const mm: Record<string, number> = {};
+      for (const e of expenses) {
+        const key = e.date.slice(0, 7); // YYYY-MM
+        mm[key] = (mm[key] ?? 0) + e.convertedAmount;
+      }
+      return Object.entries(mm)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, amt]) => ({
+          date: new Date(k + '-01').toLocaleString('en', { month: 'short' }),
+          amount: Math.round(amt),
+        }));
+    }
+    // weekly or monthly — group by day
+    return expenses.slice(0, period === 'weekly' ? 7 : 14).map((e) => ({
+      date: e.date.slice(5), // MM-DD
+      amount: Math.round(e.convertedAmount),
+    }));
+  }, [expenses, period]);
+
   const pieData = (stats?.byCategory ?? []).map((c, i) => ({
     name: c.category,
     value: Math.round(c.amount),
@@ -176,17 +333,11 @@ export default function Dashboard() {
   };
 
   return (
-    /* 
-      KEY FIX: Use a plain div with overflow-y-auto instead of ScrollArea.
-      On mobile, ScrollArea from Radix can fail to scroll properly when nested
-      inside a flex container that has overflow-hidden parents.
-      We rely on the natural block flow + overflow-y-auto here.
-    */
     <div
       className='flex flex-col h-full'
       style={{ background: '#080810', overflow: 'hidden' }}
     >
-      {/* Sticky Header */}
+      {/* ── Sticky Header ── */}
       <div
         className='shrink-0 px-4 sm:px-8 py-4 sm:py-5'
         style={{
@@ -196,40 +347,44 @@ export default function Dashboard() {
           zIndex: 10,
         }}
       >
-        <div className='flex items-center justify-between'>
+        <div className='flex items-start justify-between gap-3'>
           <div>
             <div className='flex items-center gap-2 mb-1'>
               <Sparkles className='w-3.5 h-3.5 text-[#7c5cfc]' />
               <span className='font-mono text-[9px] text-[#4a4870] uppercase tracking-[0.15em]'>
-                {new Date().toLocaleDateString('en-IN', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {periodLabel}
               </span>
             </div>
             <h1 className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight'>
               {user ? `Hey, ${user.name.split(' ')[0]} 👋` : 'Dashboard'}
             </h1>
           </div>
-          <div
-            className='flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl'
-            style={{
-              background: 'rgba(0,255,135,0.07)',
-              border: '1px solid rgba(0,255,135,0.2)',
-            }}
-          >
+
+          <div className='flex items-center gap-3 mt-1'>
+            {/* Period dropdown */}
+            <PeriodDropdown value={period} onChange={setPeriod} />
+
+            {/* Live indicator */}
             <div
-              className='w-1.5 h-1.5 rounded-full pulse-dot'
-              style={{ background: '#00ff87', boxShadow: '0 0 6px #00ff87' }}
-            />
-            <span className='font-mono text-[9px] sm:text-[10px] text-[#00ff87]'>
-              Live
-            </span>
+              className='flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl'
+              style={{
+                background: 'rgba(0,255,135,0.07)',
+                border: '1px solid rgba(0,255,135,0.2)',
+              }}
+            >
+              <div
+                className='w-1.5 h-1.5 rounded-full pulse-dot'
+                style={{ background: '#00ff87', boxShadow: '0 0 6px #00ff87' }}
+              />
+              <span className='font-mono text-[9px] sm:text-[10px] text-[#00ff87]'>
+                Live
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Scrollable Content — native overflow-y-auto for reliable mobile scroll */}
+      {/* ── Scrollable Content ── */}
       <div
         className='flex-1 min-h-0'
         style={{
@@ -239,7 +394,33 @@ export default function Dashboard() {
         }}
       >
         <div className='p-4 sm:p-6 space-y-4 pb-6'>
-          {/* ── Stat Cards: 1-col on mobile, 3-col on sm+ ── */}
+          {/* ── Period indicator strip ── */}
+          <div
+            className='flex items-center gap-2 px-3 py-2 rounded-xl'
+            style={{
+              background: 'rgba(124,92,252,0.06)',
+              border: '1px solid rgba(124,92,252,0.1)',
+            }}
+          >
+            <div
+              className='w-1 h-4 rounded-sm shrink-0'
+              style={{
+                background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
+              }}
+            />
+            <span className='font-mono text-[10px] text-[#8b89b0]'>
+              Showing data for{' '}
+              <span className='text-[#9d7fff]'>
+                {PERIOD_OPTIONS.find((o) => o.value === period)?.label}
+              </span>{' '}
+              ·{' '}
+              <span className='text-[#4a4870]'>
+                {from} → {to}
+              </span>
+            </span>
+          </div>
+
+          {/* ── Stat Cards ── */}
           <div className='grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3'>
             <StatCard
               label='Total Spent'
@@ -247,7 +428,8 @@ export default function Dashboard() {
               icon={DollarSign}
               sub={
                 <>
-                  <TrendingDown className='w-3 h-3 text-[#00ff87]' /> This month
+                  <TrendingDown className='w-3 h-3 text-[#00ff87]' />
+                  {PERIOD_OPTIONS.find((o) => o.value === period)?.label}
                 </>
               }
               accent='#7c5cfc'
@@ -271,21 +453,29 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* ── Budget Overview ── */}
+          {/* ── Budget Overview (always current month) ── */}
           {budgetOverview && budgetOverview.length > 0 && (
             <Card
               className='border-[rgba(124,92,252,0.12)]'
-              style={{ background: 'rgba(13,13,26,0.7)', backdropFilter: 'blur(20px)' }}
+              style={{
+                background: 'rgba(13,13,26,0.7)',
+                backdropFilter: 'blur(20px)',
+              }}
             >
               <CardHeader className='pb-2 px-4 pt-4'>
                 <div className='flex items-center justify-between'>
                   <CardTitle className='flex items-center gap-2.5 text-[#f0efff] font-display text-sm font-semibold'>
                     <div
                       className='w-0.5 h-4 rounded-sm'
-                      style={{ background: 'linear-gradient(180deg, #7c5cfc, #ffb830)' }}
+                      style={{
+                        background: 'linear-gradient(180deg, #7c5cfc, #ffb830)',
+                      }}
                     />
                     <Target className='w-3.5 h-3.5 text-[#7c5cfc]' />
                     Budget Overview
+                    <span className='font-mono text-[9px] text-[#4a4870] font-normal'>
+                      (current month)
+                    </span>
                   </CardTitle>
                   <Link
                     to='/budget'
@@ -301,13 +491,15 @@ export default function Dashboard() {
                   const barColor = b.isOverBudget
                     ? '#ff2d78'
                     : b.percentage >= 80
-                    ? '#ffb830'
-                    : '#00ff87';
+                      ? '#ffb830'
+                      : '#00ff87';
                   return (
                     <div key={b.id}>
                       <div className='flex items-center justify-between mb-1'>
                         <div className='flex items-center gap-1.5'>
-                          <span className='text-sm'>{CATEGORY_EMOJI[b.category] ?? '📦'}</span>
+                          <span className='text-sm'>
+                            {CATEGORY_EMOJI[b.category] ?? '📦'}
+                          </span>
                           <span className='font-sans text-[12px] font-medium text-[#f0efff]'>
                             {b.category}
                           </span>
@@ -338,8 +530,8 @@ export default function Dashboard() {
                             background: b.isOverBudget
                               ? 'linear-gradient(90deg, #ff2d78, #ff6b6b)'
                               : b.percentage >= 80
-                              ? 'linear-gradient(90deg, #ffb830, #ff6b30)'
-                              : 'linear-gradient(90deg, #00ff87, #00d4ff)',
+                                ? 'linear-gradient(90deg, #ffb830, #ff6b30)'
+                                : 'linear-gradient(90deg, #00ff87, #00d4ff)',
                             boxShadow: `0 0 8px ${barColor}60`,
                           }}
                         />
@@ -352,67 +544,107 @@ export default function Dashboard() {
           )}
 
           {/* ── Goals Overview ── */}
-          {goals && goals.length > 0 && (() => {
-            const topGoals = goals.slice(0, 3);
-            const completedCount = goals.filter((g) => g.isCompleted).length;
-            return (
-              <Card
-                className='border-[rgba(124,92,252,0.12)]'
-                style={{ background: 'rgba(13,13,26,0.7)', backdropFilter: 'blur(20px)' }}
-              >
-                <CardHeader className='pb-2 px-4 pt-4'>
-                  <CardTitle className='flex items-center justify-between text-[#f0efff] font-display text-sm font-semibold'>
-                    <div className='flex items-center gap-2'>
-                      <div className='w-0.5 h-4 rounded-sm' style={{ background: 'linear-gradient(180deg, #ffb830, #00ff87)' }} />
-                      <Trophy className='w-3.5 h-3.5 text-[#ffb830]' />
-                      Financial Goals
-                    </div>
-                    <Link
-                      to='/goals'
-                      className='flex items-center gap-1 font-mono text-[10px] text-[#4a4870] hover:text-[#9d7fff] transition-colors'
-                    >
-                      {completedCount}/{goals.length} done <ArrowRight className='h-3 w-3' />
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='px-4 pb-4 space-y-2.5'>
-                  {topGoals.map((goal) => {
-                    const isSavings = goal.type === 'SAVINGS';
-                    const isOver = !isSavings && goal.progress >= 100;
-                    const barColor = goal.isCompleted ? '#00ff87' : isOver ? '#ff3b5c' : isSavings ? '#7c5cfc' : '#00d4ff';
-                    const fmt = (n: number) =>
-                      new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-                    return (
-                      <div key={goal.id} className='space-y-1.5'>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center gap-2 min-w-0'>
-                            <span className='font-mono text-[9px] px-1.5 py-0.5 rounded' style={{ background: `${barColor}15`, color: barColor }}>
-                              {isSavings ? '🎯' : '📉'}
-                            </span>
-                            <span className='font-sans text-xs text-[#f0efff] truncate'>{goal.name}</span>
-                          </div>
-                          <span className='font-mono text-[10px] shrink-0 ml-2' style={{ color: barColor }}>
-                            {goal.progress}%
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <div className='flex-1 h-1.5 rounded-full overflow-hidden' style={{ background: 'rgba(124,92,252,0.1)' }}>
-                            <div
-                              className='h-full rounded-full transition-all duration-500'
-                              style={{ width: `${Math.min(goal.progress, 100)}%`, background: barColor }}
-                            />
-                          </div>
-                          <span className='font-mono text-[9px] text-[#4a4870] shrink-0'>
-                            {fmt(goal.currentAmount)} / {fmt(goal.targetAmount)}
-                          </span>
-                        </div>
+          {goals &&
+            goals.length > 0 &&
+            (() => {
+              const topGoals = goals.slice(0, 3);
+              const completedCount = goals.filter((g) => g.isCompleted).length;
+              return (
+                <Card
+                  className='border-[rgba(124,92,252,0.12)]'
+                  style={{
+                    background: 'rgba(13,13,26,0.7)',
+                    backdropFilter: 'blur(20px)',
+                  }}
+                >
+                  <CardHeader className='pb-2 px-4 pt-4'>
+                    <CardTitle className='flex items-center justify-between text-[#f0efff] font-display text-sm font-semibold'>
+                      <div className='flex items-center gap-2'>
+                        <div
+                          className='w-0.5 h-4 rounded-sm'
+                          style={{
+                            background:
+                              'linear-gradient(180deg, #ffb830, #00ff87)',
+                          }}
+                        />
+                        <Trophy className='w-3.5 h-3.5 text-[#ffb830]' />
+                        Financial Goals
                       </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            );
-          })()}
+                      <Link
+                        to='/goals'
+                        className='flex items-center gap-1 font-mono text-[10px] text-[#4a4870] hover:text-[#9d7fff] transition-colors'
+                      >
+                        {completedCount}/{goals.length} done{' '}
+                        <ArrowRight className='h-3 w-3' />
+                      </Link>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className='px-4 pb-4 space-y-2.5'>
+                    {topGoals.map((goal) => {
+                      const isSavings = goal.type === 'SAVINGS';
+                      const isOver = !isSavings && goal.progress >= 100;
+                      const barColor = goal.isCompleted
+                        ? '#00ff87'
+                        : isOver
+                          ? '#ff3b5c'
+                          : isSavings
+                            ? '#7c5cfc'
+                            : '#00d4ff';
+                      const fmtGoal = (n: number) =>
+                        new Intl.NumberFormat('en-IN', {
+                          style: 'currency',
+                          currency: 'INR',
+                          maximumFractionDigits: 0,
+                        }).format(n);
+                      return (
+                        <div key={goal.id} className='space-y-1.5'>
+                          <div className='flex items-center justify-between'>
+                            <div className='flex items-center gap-2 min-w-0'>
+                              <span
+                                className='font-mono text-[9px] px-1.5 py-0.5 rounded'
+                                style={{
+                                  background: `${barColor}15`,
+                                  color: barColor,
+                                }}
+                              >
+                                {isSavings ? '🎯' : '📉'}
+                              </span>
+                              <span className='font-sans text-xs text-[#f0efff] truncate'>
+                                {goal.name}
+                              </span>
+                            </div>
+                            <span
+                              className='font-mono text-[10px] shrink-0 ml-2'
+                              style={{ color: barColor }}
+                            >
+                              {goal.progress}%
+                            </span>
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            <div
+                              className='flex-1 h-1.5 rounded-full overflow-hidden'
+                              style={{ background: 'rgba(124,92,252,0.1)' }}
+                            >
+                              <div
+                                className='h-full rounded-full transition-all duration-500'
+                                style={{
+                                  width: `${Math.min(goal.progress, 100)}%`,
+                                  background: barColor,
+                                }}
+                              />
+                            </div>
+                            <span className='font-mono text-[9px] text-[#4a4870] shrink-0'>
+                              {fmtGoal(goal.currentAmount)} /{' '}
+                              {fmtGoal(goal.targetAmount)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
           {/* ── Charts ── */}
           {!isLoading && expenses.length > 0 && (
@@ -433,59 +665,69 @@ export default function Dashboard() {
                         background: 'linear-gradient(180deg, #7c5cfc, #00d4ff)',
                       }}
                     />
-                    Recent Expenses
+                    {period === 'yearly'
+                      ? 'Monthly Spending'
+                      : period === 'weekly'
+                        ? 'Daily Spending This Week'
+                        : 'Recent Expenses'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className='px-2 pb-4'>
-                  <ResponsiveContainer width='100%' height={160}>
-                    <BarChart
-                      data={barData}
-                      margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
-                      barCategoryGap='30%'
-                    >
-                      <CartesianGrid
-                        strokeDasharray='3 3'
-                        stroke='rgba(124,92,252,0.08)'
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey='date'
-                        tick={{
-                          fontSize: 9,
-                          fill: '#4a4870',
-                          fontFamily: '"JetBrains Mono", monospace',
-                        }}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        tick={{
-                          fontSize: 9,
-                          fill: '#4a4870',
-                          fontFamily: '"JetBrains Mono", monospace',
-                        }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) =>
-                          v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
-                        }
-                      />
-                      <Tooltip {...tooltipStyle} />
-                      <Bar
-                        dataKey='amount'
-                        radius={[6, 6, 0, 0]}
-                        maxBarSize={36}
-                        fill='#7c5cfc'
+                  {barData.length === 0 ? (
+                    <div className='h-40 flex items-center justify-center text-[#4a4870] text-sm'>
+                      No data for this period
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width='100%' height={160}>
+                      <BarChart
+                        data={barData}
+                        margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                        barCategoryGap='30%'
                       >
-                        {barData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={`rgba(124,92,252,${0.5 + (i / barData.length) * 0.5})`}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                        <CartesianGrid
+                          strokeDasharray='3 3'
+                          stroke='rgba(124,92,252,0.08)'
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey='date'
+                          tick={{
+                            fontSize: 9,
+                            fill: '#4a4870',
+                            fontFamily: '"JetBrains Mono", monospace',
+                          }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tick={{
+                            fontSize: 9,
+                            fill: '#4a4870',
+                            fontFamily: '"JetBrains Mono", monospace',
+                          }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) =>
+                            v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
+                          }
+                        />
+                        <Tooltip {...tooltipStyle} />
+                        <Bar
+                          dataKey='amount'
+                          radius={[6, 6, 0, 0]}
+                          maxBarSize={36}
+                          fill='#7c5cfc'
+                        >
+                          {barData.map((_, i) => (
+                            <Cell
+                              key={i}
+                              fill={`rgba(124,92,252,${0.5 + (i / barData.length) * 0.5})`}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 
@@ -649,7 +891,12 @@ export default function Dashboard() {
             <div className='flex flex-col items-center justify-center py-20 text-center'>
               <div className='text-5xl mb-4'>✨</div>
               <div className='font-display text-xl font-bold text-[#f0efff] mb-2'>
-                No expenses yet
+                No expenses{' '}
+                {period === 'weekly'
+                  ? 'this week'
+                  : period === 'yearly'
+                    ? 'this year'
+                    : 'this month'}
               </div>
               <p className='text-[#4a4870] text-sm'>
                 Head to AI Chat to add your first expense!
