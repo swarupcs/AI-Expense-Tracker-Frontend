@@ -1,59 +1,176 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  useOnboardingWelcome,
+  useSendOnboardingMessage,
+} from '@/services/onboarding.service';
 import { useUpdateUserSettings } from '@/services/auth.service';
-import { useCreateExpense } from '@/services/expenses.service';
-import { useUpsertBudget } from '@/services/budget.service';
-import type { Category } from '@/api/expenses.api';
-import { useAuthStore } from '@/store/auth.store';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import type { OnboardingState, OnboardingMessage } from '@/api/onboarding.api';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Zap, ArrowRight, CheckCircle2, Sparkles, PiggyBank, Receipt, ChevronRight,
+  Zap,
+  Send,
+  Loader2,
+  CheckCircle2,
+  ArrowRight,
+  Bot,
+  User,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Step progress dots ───────────────────────────────────────────────────────
 
-const CATEGORIES: Category[] = [
-  'DINING', 'SHOPPING', 'TRANSPORT', 'ENTERTAINMENT',
-  'UTILITIES', 'HEALTH', 'EDUCATION', 'OTHER',
-];
+const STEPS = [
+  'WELCOME',
+  'INCOME',
+  'TOP_CATEGORIES',
+  'SET_BUDGETS',
+  'SET_GOALS',
+  'RECURRING',
+  'COMPLETE',
+] as const;
 
-const CATEGORY_EMOJI: Record<Category, string> = {
-  DINING: '🍽️', SHOPPING: '🛍️', TRANSPORT: '🚗',
-  ENTERTAINMENT: '🎮', UTILITIES: '⚡', HEALTH: '💊',
-  EDUCATION: '📚', OTHER: '📦',
-};
+function StepDots({ currentStep }: { currentStep: string }) {
+  const idx = STEPS.indexOf(currentStep as (typeof STEPS)[number]);
+  const progress = idx < 0 ? 0 : idx;
 
-const TOTAL_STEPS = 4;
-
-// ─── Step indicator ───────────────────────────────────────────────────────────
-
-function StepDots({ current }: { current: number }) {
   return (
-    <div className='flex items-center gap-2'>
-      {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+    <div className='flex items-center gap-1.5'>
+      {STEPS.slice(0, -1).map((_, i) => (
         <div
           key={i}
-          className='rounded-full transition-all duration-300'
+          className='rounded-full transition-all duration-500'
           style={{
-            width: i === current ? 20 : 6,
+            width: i === progress ? 20 : 6,
             height: 6,
-            background: i <= current
-              ? 'linear-gradient(90deg, #7c5cfc, #00d4ff)'
-              : 'rgba(124,92,252,0.15)',
+            background:
+              i < progress
+                ? 'linear-gradient(90deg, #7c5cfc, #00d4ff)'
+                : i === progress
+                  ? 'linear-gradient(90deg, #7c5cfc, #00d4ff)'
+                  : 'rgba(124,92,252,0.15)',
+            opacity: i <= progress ? 1 : 0.4,
           }}
         />
       ))}
     </div>
   );
 }
+
+// ─── Chat bubble ──────────────────────────────────────────────────────────────
+
+function Bubble({ role, text }: { role: 'assistant' | 'user'; text: string }) {
+  const isUser = role === 'user';
+  return (
+    <div
+      className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end`}
+    >
+      {/* Avatar */}
+      <div
+        className='w-7 h-7 rounded-xl flex items-center justify-center shrink-0'
+        style={{
+          background: isUser
+            ? 'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))'
+            : 'rgba(124,92,252,0.15)',
+          border: `1px solid ${isUser ? 'rgba(124,92,252,0.3)' : 'rgba(124,92,252,0.2)'}`,
+        }}
+      >
+        {isUser ? (
+          <User className='w-3.5 h-3.5 text-[#9d7fff]' />
+        ) : (
+          <Bot className='w-3.5 h-3.5 text-[#7c5cfc]' />
+        )}
+      </div>
+
+      {/* Bubble */}
+      <div
+        className='max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed font-sans'
+        style={
+          isUser
+            ? {
+                background:
+                  'linear-gradient(135deg, rgba(124,92,252,0.25), rgba(0,212,255,0.15))',
+                border: '1px solid rgba(124,92,252,0.3)',
+                color: '#f0efff',
+                borderRadius: '16px 16px 4px 16px',
+              }
+            : {
+                background: 'rgba(13,13,26,0.9)',
+                border: '1px solid rgba(124,92,252,0.12)',
+                color: '#d4d2f0',
+                borderRadius: '16px 16px 16px 4px',
+              }
+        }
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
+// ─── Typing indicator ─────────────────────────────────────────────────────────
+
+function TypingIndicator() {
+  return (
+    <div className='flex gap-2.5 items-end'>
+      <div
+        className='w-7 h-7 rounded-xl flex items-center justify-center shrink-0'
+        style={{
+          background: 'rgba(124,92,252,0.15)',
+          border: '1px solid rgba(124,92,252,0.2)',
+        }}
+      >
+        <Bot className='w-3.5 h-3.5 text-[#7c5cfc]' />
+      </div>
+      <div
+        className='px-4 py-3 rounded-[16px_16px_16px_4px]'
+        style={{
+          background: 'rgba(13,13,26,0.9)',
+          border: '1px solid rgba(124,92,252,0.12)',
+        }}
+      >
+        <div className='flex gap-1.5 items-center'>
+          {[0, 150, 300].map((delay) => (
+            <div
+              key={delay}
+              className='w-1.5 h-1.5 rounded-full'
+              style={{
+                background: '#7c5cfc',
+                animation: `bounce 1s ${delay}ms ease-in-out infinite`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick reply chips ────────────────────────────────────────────────────────
+
+const QUICK_REPLIES: Record<string, string[]> = {
+  WELCOME: ["Let's go!", 'Sure, get me started'],
+  INCOME: ['₹50,000', '₹80,000', '₹1,20,000', '₹2,00,000'],
+  TOP_CATEGORIES: [
+    'Dining, Shopping, Transport',
+    'Dining, Utilities, Health',
+    'Shopping, Entertainment, Transport',
+  ],
+  SET_BUDGETS: [
+    'Yes, looks good!',
+    'Let me adjust some',
+    'Accept all suggestions',
+  ],
+  SET_GOALS: [
+    'Emergency fund of ₹1,00,000',
+    'No goals right now',
+    'Vacation fund ₹50,000',
+  ],
+  RECURRING: [
+    'Rent ₹15,000, Netflix ₹649',
+    'No recurring expenses',
+    'Just rent ₹20,000',
+  ],
+  COMPLETE: [],
+};
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -62,344 +179,297 @@ interface Props {
 }
 
 export function OnboardingFlow({ onComplete }: Props) {
-  const user = useAuthStore((s) => s.user);
-  const [step, setStep] = useState(0);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Step 2 — expense form
-  const [expTitle, setExpTitle] = useState('');
-  const [expAmount, setExpAmount] = useState('');
-  const [expCategory, setExpCategory] = useState<Category>('DINING');
-  const [expError, setExpError] = useState('');
+  // Chat state
+  const [history, setHistory] = useState<OnboardingMessage[]>([]);
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>({
+    step: 'WELCOME',
+  });
+  const [inputValue, setInputValue] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
 
-  // Step 3 — budget form
-  const [budCategory, setBudCategory] = useState<Category>('DINING');
-  const [budAmount, setBudAmount] = useState('');
-  const [budError, setBudError] = useState('');
+  // API hooks
+  const { data: welcome, isLoading: loadingWelcome } = useOnboardingWelcome();
+  const { mutate: sendMessage, isPending: sending } =
+    useSendOnboardingMessage();
+  const { mutate: markComplete } = useUpdateUserSettings();
 
-  const { mutate: createExpense, isPending: savingExp } = useCreateExpense();
-  const { mutate: upsertBudget, isPending: savingBud } = useUpsertBudget();
-  const { mutate: updateSettings, isPending: savingSettings } = useUpdateUserSettings();
+  // Seed initial assistant message from backend welcome
+  useEffect(() => {
+    if (welcome?.message && history.length === 0) {
+      setHistory([{ role: 'assistant', content: welcome.message }]);
+      setOnboardingState(welcome.initialState ?? { step: 'WELCOME' });
+    }
+  }, [welcome]);
 
-  const firstName = user?.name?.split(' ')[0] ?? 'there';
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [history, sending]);
 
-  function next() { setStep((s) => s + 1); }
+  const handleSend = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+    setInputValue('');
 
-  function handleExpense() {
-    if (!expTitle.trim()) { setExpError('Please enter a title'); return; }
-    const amt = parseFloat(expAmount);
-    if (!amt || amt <= 0) { setExpError('Please enter a valid amount'); return; }
-    setExpError('');
-    createExpense(
-      { title: expTitle.trim(), amount: amt, category: expCategory, date: new Date().toISOString().split('T')[0] },
-      { onSuccess: next, onError: () => next() }, // skip on error — don't block onboarding
+    const userMsg: OnboardingMessage = { role: 'user', content: trimmed };
+    const updatedHistory = [...history, userMsg];
+    setHistory(updatedHistory);
+
+    sendMessage(
+      {
+        message: trimmed,
+        state: onboardingState,
+        history: updatedHistory,
+        applyActions: true, // let backend create budgets/goals/settings
+      },
+      {
+        onSuccess: (res) => {
+          const assistantMsg: OnboardingMessage = {
+            role: 'assistant',
+            content: res.message,
+          };
+          setHistory((prev) => [...prev, assistantMsg]);
+          setOnboardingState(res.state);
+
+          if (res.isComplete || res.nextStep === 'COMPLETE') {
+            setIsComplete(true);
+          }
+        },
+        onError: () => {
+          // Fallback: show generic error in chat
+          setHistory((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Sorry, I ran into an issue. Could you try again?',
+            },
+          ]);
+        },
+      },
     );
-  }
+  };
 
-  function handleBudget() {
-    const amt = parseFloat(budAmount);
-    if (!amt || amt <= 0) { setBudError('Please enter a valid amount'); return; }
-    setBudError('');
-    upsertBudget(
-      { category: budCategory, amount: amt },
-      { onSuccess: next, onError: () => next() },
-    );
-  }
-
-  function handleFinish() {
-    updateSettings(
+  const handleFinish = () => {
+    markComplete(
       { onboardingCompleted: true },
       { onSuccess: onComplete, onError: onComplete },
     );
-  }
+  };
+
+  const quickReplies = QUICK_REPLIES[onboardingState.step] ?? [];
 
   return (
     <div
-      className='fixed inset-0 z-[200] flex items-center justify-center p-4'
-      style={{ background: 'rgba(8,8,16,0.96)', backdropFilter: 'blur(16px)' }}
+      className='fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4'
+      style={{ background: 'rgba(8,8,16,0.97)', backdropFilter: 'blur(16px)' }}
     >
       <div
-        className='w-full max-w-md rounded-3xl p-8 relative overflow-hidden'
+        className='w-full max-w-lg h-full max-h-[680px] flex flex-col rounded-3xl overflow-hidden relative'
         style={{
-          background: 'rgba(13,13,26,0.95)',
+          background: 'rgba(10,10,20,0.98)',
           border: '1px solid rgba(124,92,252,0.2)',
           boxShadow: '0 0 80px rgba(124,92,252,0.15)',
         }}
       >
         {/* Glow orb */}
         <div
-          className='absolute -top-20 -right-20 w-48 h-48 rounded-full pointer-events-none'
-          style={{ background: 'radial-gradient(circle, rgba(124,92,252,0.15), transparent 70%)' }}
+          className='absolute -top-24 -right-24 w-56 h-56 rounded-full pointer-events-none'
+          style={{
+            background:
+              'radial-gradient(circle, rgba(124,92,252,0.12), transparent 70%)',
+          }}
         />
 
-        {/* Step dots */}
-        <div className='flex justify-between items-center mb-8'>
-          <StepDots current={step} />
-          <span className='font-mono text-[10px] text-[#4a4870]'>
-            {step + 1} / {TOTAL_STEPS}
-          </span>
+        {/* ── Header ── */}
+        <div
+          className='shrink-0 px-5 py-4 flex items-center justify-between'
+          style={{ borderBottom: '1px solid rgba(124,92,252,0.1)' }}
+        >
+          <div className='flex items-center gap-3'>
+            <div
+              className='w-9 h-9 rounded-xl flex items-center justify-center'
+              style={{
+                background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+                boxShadow: '0 0 16px rgba(124,92,252,0.4)',
+              }}
+            >
+              <Zap className='w-4 h-4 text-white' strokeWidth={2.5} />
+            </div>
+            <div>
+              <p className='font-display text-sm font-bold text-[#f0efff]'>
+                Spendly Setup
+              </p>
+              <p className='font-mono text-[9px] text-[#4a4870] uppercase tracking-widest'>
+                AI-Powered Onboarding
+              </p>
+            </div>
+          </div>
+
+          <div className='flex flex-col items-end gap-1.5'>
+            <StepDots currentStep={onboardingState.step} />
+            <span className='font-mono text-[9px] text-[#4a4870]'>
+              {onboardingState.step === 'COMPLETE'
+                ? 'Done!'
+                : `Step ${Math.max(0, STEPS.indexOf(onboardingState.step as (typeof STEPS)[number]))} of ${STEPS.length - 1}`}
+            </span>
+          </div>
         </div>
 
-        {/* ── Step 0: Welcome ── */}
-        {step === 0 && (
-          <div className='space-y-6'>
-            <div
-              className='w-14 h-14 rounded-2xl flex items-center justify-center'
-              style={{
-                background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-                boxShadow: '0 0 28px rgba(124,92,252,0.5)',
-              }}
-            >
-              <Zap className='w-7 h-7 text-white' strokeWidth={2.5} />
+        {/* ── Chat messages ── */}
+        <div className='flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3'>
+          {loadingWelcome ? (
+            <div className='flex items-center justify-center h-full'>
+              <Loader2 className='w-6 h-6 text-[#7c5cfc] animate-spin' />
             </div>
-
-            <div>
-              <h1 className='font-display text-2xl font-extrabold text-[#f0efff] tracking-tight mb-2'>
-                Welcome to Spendly,<br />{firstName}! 👋
-              </h1>
-              <p className='font-sans text-sm text-[#8b89b0] leading-relaxed'>
-                Let's get you set up in under 2 minutes.
-              </p>
-            </div>
-
-            <div className='space-y-3'>
-              {[
-                { icon: Receipt, text: 'Track every expense, automatically', color: '#7c5cfc' },
-                { icon: PiggyBank, text: 'Set budgets and get alerted', color: '#00d4ff' },
-                { icon: Sparkles, text: 'Ask AI questions about your spending', color: '#00ff87' },
-              ].map(({ icon: Icon, text, color }) => (
-                <div key={text} className='flex items-center gap-3'>
-                  <div
-                    className='w-8 h-8 rounded-xl flex items-center justify-center shrink-0'
-                    style={{ background: `${color}15`, border: `1px solid ${color}25` }}
-                  >
-                    <Icon className='w-4 h-4' style={{ color }} />
-                  </div>
-                  <span className='font-sans text-sm text-[#c8c6e8]'>{text}</span>
-                </div>
+          ) : (
+            <>
+              {history.map((msg, i) => (
+                <Bubble key={i} role={msg.role} text={msg.content} />
               ))}
-            </div>
+              {sending && <TypingIndicator />}
 
-            <Button
-              onClick={next}
-              className='w-full h-12 gap-2 font-display font-bold text-base'
-              style={{
-                background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-                border: 'none',
-                boxShadow: '0 0 24px rgba(124,92,252,0.4)',
-              }}
-            >
-              Get Started <ArrowRight className='w-5 h-5' />
-            </Button>
-          </div>
-        )}
+              {/* Complete state */}
+              {isComplete && !sending && (
+                <div
+                  className='flex flex-col items-center gap-3 py-4 px-4 rounded-2xl text-center mt-2'
+                  style={{
+                    background: 'rgba(0,255,135,0.06)',
+                    border: '1px solid rgba(0,255,135,0.2)',
+                  }}
+                >
+                  <div
+                    className='w-12 h-12 rounded-xl flex items-center justify-center'
+                    style={{
+                      background: 'rgba(0,255,135,0.12)',
+                      border: '1px solid rgba(0,255,135,0.3)',
+                    }}
+                  >
+                    <CheckCircle2 className='w-6 h-6 text-[#00ff87]' />
+                  </div>
+                  <p className='font-display text-base font-bold text-[#f0efff]'>
+                    You're all set! 🎉
+                  </p>
+                  <Button
+                    onClick={handleFinish}
+                    className='gap-2 text-white font-display font-bold px-6'
+                    style={{
+                      background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
+                      boxShadow: '0 0 20px rgba(124,92,252,0.4)',
+                    }}
+                  >
+                    Go to Dashboard <ArrowRight className='w-4 h-4' />
+                  </Button>
+                </div>
+              )}
 
-        {/* ── Step 1: Add first expense ── */}
-        {step === 1 && (
-          <div className='space-y-5'>
-            <div>
-              <div className='font-mono text-[10px] text-[#7c5cfc] uppercase tracking-widest mb-1'>
-                Step 1 of 2
-              </div>
-              <h2 className='font-display text-xl font-bold text-[#f0efff]'>
-                Add your first expense
-              </h2>
-              <p className='font-sans text-sm text-[#4a4870] mt-1'>
-                Log something you spent money on recently.
-              </p>
-            </div>
+              <div ref={bottomRef} />
+            </>
+          )}
+        </div>
 
-            {expError && (
-              <p className='text-sm text-[#ff6b6b] bg-red-950/20 border border-red-900/30 rounded-xl px-3 py-2'>
-                {expError}
-              </p>
-            )}
-
-            <div className='space-y-1.5'>
-              <Label className='font-sans text-xs text-[#8b89b0]'>What did you spend on?</Label>
-              <Input
-                placeholder='e.g. Coffee, Uber, Groceries…'
-                value={expTitle}
-                onChange={(e) => setExpTitle(e.target.value)}
-                className='h-11 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff] placeholder:text-[#4a4870] focus-visible:ring-[#7c5cfc]'
-                autoFocus
-              />
-            </div>
-
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-1.5'>
-                <Label className='font-sans text-xs text-[#8b89b0]'>Amount (₹)</Label>
-                <Input
-                  type='number'
-                  placeholder='0'
-                  value={expAmount}
-                  onChange={(e) => setExpAmount(e.target.value)}
-                  className='h-11 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff] placeholder:text-[#4a4870] focus-visible:ring-[#7c5cfc]'
-                />
-              </div>
-              <div className='space-y-1.5'>
-                <Label className='font-sans text-xs text-[#8b89b0]'>Category</Label>
-                <Select value={expCategory} onValueChange={(v) => setExpCategory(v as Category)}>
-                  <SelectTrigger className='h-11 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff]'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent style={{ background: '#0d0d1a', border: '1px solid rgba(124,92,252,0.2)' }}>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c} className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'>
-                        {CATEGORY_EMOJI[c]} {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className='flex gap-3 pt-1'>
-              <Button
-                variant='ghost'
-                onClick={next}
-                className='flex-1 text-[#4a4870] hover:text-[#8b89b0] border border-[rgba(124,92,252,0.08)]'
-              >
-                Skip for now
-              </Button>
-              <Button
-                onClick={handleExpense}
-                disabled={savingExp}
-                className='flex-1 gap-2 font-semibold'
-                style={{ background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)', border: 'none' }}
-              >
-                {savingExp ? 'Saving…' : <>Save <ChevronRight className='w-4 h-4' /></>}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 2: Set first budget ── */}
-        {step === 2 && (
-          <div className='space-y-5'>
-            <div>
-              <div className='font-mono text-[10px] text-[#7c5cfc] uppercase tracking-widest mb-1'>
-                Step 2 of 2
-              </div>
-              <h2 className='font-display text-xl font-bold text-[#f0efff]'>
-                Set a monthly budget
-              </h2>
-              <p className='font-sans text-sm text-[#4a4870] mt-1'>
-                Spendly will alert you when you're getting close.
-              </p>
-            </div>
-
-            {budError && (
-              <p className='text-sm text-[#ff6b6b] bg-red-950/20 border border-red-900/30 rounded-xl px-3 py-2'>
-                {budError}
-              </p>
-            )}
-
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-1.5'>
-                <Label className='font-sans text-xs text-[#8b89b0]'>Category</Label>
-                <Select value={budCategory} onValueChange={(v) => setBudCategory(v as Category)}>
-                  <SelectTrigger className='h-11 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff]'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent style={{ background: '#0d0d1a', border: '1px solid rgba(124,92,252,0.2)' }}>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c} className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'>
-                        {CATEGORY_EMOJI[c]} {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className='space-y-1.5'>
-                <Label className='font-sans text-xs text-[#8b89b0]'>Monthly limit (₹)</Label>
-                <Input
-                  type='number'
-                  placeholder='e.g. 5000'
-                  value={budAmount}
-                  onChange={(e) => setBudAmount(e.target.value)}
-                  className='h-11 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff] placeholder:text-[#4a4870] focus-visible:ring-[#7c5cfc]'
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <div className='flex gap-3 pt-1'>
-              <Button
-                variant='ghost'
-                onClick={next}
-                className='flex-1 text-[#4a4870] hover:text-[#8b89b0] border border-[rgba(124,92,252,0.08)]'
-              >
-                Skip for now
-              </Button>
-              <Button
-                onClick={handleBudget}
-                disabled={savingBud}
-                className='flex-1 gap-2 font-semibold'
-                style={{ background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)', border: 'none' }}
-              >
-                {savingBud ? 'Saving…' : <>Save <ChevronRight className='w-4 h-4' /></>}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 3: All done ── */}
-        {step === 3 && (
-          <div className='space-y-6 text-center'>
-            <div className='flex justify-center'>
-              <div
-                className='w-16 h-16 rounded-2xl flex items-center justify-center'
+        {/* ── Quick reply chips ── */}
+        {!isComplete && quickReplies.length > 0 && !sending && (
+          <div
+            className='shrink-0 px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide'
+            style={{ borderTop: '1px solid rgba(124,92,252,0.06)' }}
+          >
+            {quickReplies.map((reply) => (
+              <button
+                key={reply}
+                onClick={() => handleSend(reply)}
+                className='shrink-0 px-3 py-1.5 rounded-full font-sans text-xs text-[#9d7fff] whitespace-nowrap transition-all'
                 style={{
-                  background: 'linear-gradient(135deg, rgba(0,255,135,0.2), rgba(0,212,255,0.2))',
-                  border: '1px solid rgba(0,255,135,0.3)',
-                  boxShadow: '0 0 28px rgba(0,255,135,0.2)',
+                  background: 'rgba(124,92,252,0.1)',
+                  border: '1px solid rgba(124,92,252,0.2)',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background =
+                    'rgba(124,92,252,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background =
+                    'rgba(124,92,252,0.1)';
                 }}
               >
-                <CheckCircle2 className='w-8 h-8 text-[#00ff87]' />
-              </div>
-            </div>
+                {reply}
+              </button>
+            ))}
+          </div>
+        )}
 
-            <div>
-              <h2 className='font-display text-2xl font-extrabold text-[#f0efff] mb-2'>
-                You're all set! 🎉
-              </h2>
-              <p className='font-sans text-sm text-[#8b89b0] leading-relaxed'>
-                Spendly is ready to help you take control of your finances.
-                Head to the dashboard to see your overview.
-              </p>
-            </div>
-
-            <div className='space-y-2 text-left'>
-              {[
-                '💬 Ask AI Chat to log expenses naturally',
-                '🎯 Visit Budgets to set more limits',
-                '🔄 Use Recurring for fixed monthly bills',
-              ].map((tip) => (
-                <div
-                  key={tip}
-                  className='flex items-center gap-2 px-3 py-2 rounded-xl'
-                  style={{ background: 'rgba(124,92,252,0.06)', border: '1px solid rgba(124,92,252,0.1)' }}
-                >
-                  <span className='font-sans text-sm text-[#c8c6e8]'>{tip}</span>
-                </div>
-              ))}
-            </div>
-
-            <Button
-              onClick={handleFinish}
-              disabled={savingSettings}
-              className='w-full h-12 gap-2 font-display font-bold text-base'
+        {/* ── Input ── */}
+        {!isComplete && (
+          <div
+            className='shrink-0 px-4 py-3'
+            style={{ borderTop: '1px solid rgba(124,92,252,0.1)' }}
+          >
+            <div
+              className='flex items-center gap-2 rounded-2xl px-4 py-2 transition-all'
               style={{
-                background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-                border: 'none',
-                boxShadow: '0 0 24px rgba(124,92,252,0.4)',
+                background: 'rgba(13,13,26,0.9)',
+                border: '1px solid rgba(124,92,252,0.2)',
               }}
+              onFocus={() => {}}
             >
-              {savingSettings ? 'Loading…' : <>Go to Dashboard <ArrowRight className='w-5 h-5' /></>}
-            </Button>
+              <input
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend(inputValue);
+                  }
+                }}
+                placeholder={sending ? 'AI is thinking…' : 'Type your answer…'}
+                disabled={sending || loadingWelcome}
+                className='flex-1 bg-transparent text-[#f0efff] font-sans text-sm outline-none placeholder:text-[#4a4870] disabled:cursor-not-allowed'
+              />
+              <button
+                onClick={() => handleSend(inputValue)}
+                disabled={!inputValue.trim() || sending}
+                className='w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all'
+                style={{
+                  background:
+                    inputValue.trim() && !sending
+                      ? 'linear-gradient(135deg, #7c5cfc, #00d4ff)'
+                      : 'rgba(74,72,112,0.2)',
+                  boxShadow:
+                    inputValue.trim() && !sending
+                      ? '0 0 12px rgba(124,92,252,0.4)'
+                      : 'none',
+                  cursor:
+                    inputValue.trim() && !sending ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {sending ? (
+                  <Loader2 className='w-3.5 h-3.5 text-[#9d7fff] animate-spin' />
+                ) : (
+                  <Send
+                    className='w-3.5 h-3.5'
+                    style={{
+                      color: inputValue.trim() ? '#fff' : 'rgba(74,72,112,0.5)',
+                    }}
+                  />
+                )}
+              </button>
+            </div>
+            <p className='text-center font-mono text-[9px] text-[#4a4870] mt-1.5'>
+              Enter to send · or tap a suggestion above
+            </p>
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+      `}</style>
     </div>
   );
 }
