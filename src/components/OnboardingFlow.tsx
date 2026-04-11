@@ -4,7 +4,7 @@ import {
   useSendOnboardingMessage,
 } from '@/services/onboarding.service';
 import { useUpdateUserSettings } from '@/services/auth.service';
-import type { OnboardingState, OnboardingMessage } from '@/api/onboarding.api';
+import type { OnboardingState, OnboardingMessage } from '@/api//onboarding.api';
 import {
   Zap,
   Send,
@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Bot,
   User,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -63,7 +64,6 @@ function Bubble({ role, text }: { role: 'assistant' | 'user'; text: string }) {
     <div
       className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end`}
     >
-      {/* Avatar */}
       <div
         className='w-7 h-7 rounded-xl flex items-center justify-center shrink-0'
         style={{
@@ -80,7 +80,6 @@ function Bubble({ role, text }: { role: 'assistant' | 'user'; text: string }) {
         )}
       </div>
 
-      {/* Bubble */}
       <div
         className='max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed font-sans'
         style={
@@ -172,6 +171,83 @@ const QUICK_REPLIES: Record<string, string[]> = {
   COMPLETE: [],
 };
 
+// ─── Skip confirm modal ───────────────────────────────────────────────────────
+
+function SkipConfirmModal({
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div
+      className='absolute inset-0 z-10 flex items-center justify-center rounded-3xl'
+      style={{ background: 'rgba(8,8,16,0.85)', backdropFilter: 'blur(8px)' }}
+    >
+      <div
+        className='mx-4 rounded-2xl p-6 flex flex-col items-center text-center gap-4'
+        style={{
+          background: '#0d0d1a',
+          border: '1px solid rgba(124,92,252,0.2)',
+          boxShadow: '0 0 60px rgba(124,92,252,0.1)',
+          maxWidth: 320,
+        }}
+      >
+        <div
+          className='w-12 h-12 rounded-xl flex items-center justify-center'
+          style={{
+            background: 'rgba(255,184,48,0.1)',
+            border: '1px solid rgba(255,184,48,0.25)',
+          }}
+        >
+          <X className='w-5 h-5' style={{ color: '#ffb830' }} />
+        </div>
+
+        <div>
+          <p className='font-display text-base font-bold text-[#f0efff] mb-1.5'>
+            Skip setup?
+          </p>
+          <p className='font-sans text-sm text-[#8b89b0] leading-relaxed'>
+            You can always configure budgets, goals, and preferences later from
+            the <span className='text-[#9d7fff] font-medium'>Settings</span> and{' '}
+            <span className='text-[#9d7fff] font-medium'>Budget</span> pages.
+          </p>
+        </div>
+
+        <div className='flex gap-2.5 w-full'>
+          <Button
+            variant='outline'
+            onClick={onCancel}
+            disabled={isLoading}
+            className='flex-1 h-10 border-[rgba(124,92,252,0.2)] text-[#8b89b0] hover:text-[#f0efff] font-sans text-sm'
+          >
+            Continue setup
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className='flex-1 h-10 font-display font-bold text-sm'
+            style={{
+              background: 'rgba(255,184,48,0.15)',
+              border: '1px solid rgba(255,184,48,0.3)',
+              color: '#ffb830',
+            }}
+          >
+            {isLoading ? (
+              <Loader2 className='w-4 h-4 animate-spin' />
+            ) : (
+              'Skip for now'
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -182,29 +258,22 @@ export function OnboardingFlow({ onComplete }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Chat state
+  // Call this hook first since other state depends on it
+  const { data: welcome, isLoading: loadingWelcome } = useOnboardingWelcome();
+
   const [history, setHistory] = useState<OnboardingMessage[]>([]);
   const [onboardingState, setOnboardingState] = useState<OnboardingState>({
     step: 'WELCOME',
   });
   const [inputValue, setInputValue] = useState('');
   const [isComplete, setIsComplete] = useState(false);
-
-  // API hooks
-  const { data: welcome, isLoading: loadingWelcome } = useOnboardingWelcome();
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   const { mutate: sendMessage, isPending: sending } =
     useSendOnboardingMessage();
   const { mutate: markComplete } = useUpdateUserSettings();
 
-  // Seed initial assistant message from backend welcome
-  useEffect(() => {
-    if (welcome?.message && history.length === 0) {
-      setHistory([{ role: 'assistant', content: welcome.message }]);
-      setOnboardingState(welcome.initialState ?? { step: 'WELCOME' });
-    }
-  }, [welcome]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history, sending]);
@@ -223,7 +292,7 @@ export function OnboardingFlow({ onComplete }: Props) {
         message: trimmed,
         state: onboardingState,
         history: updatedHistory,
-        applyActions: true, // let backend create budgets/goals/settings
+        applyActions: true,
       },
       {
         onSuccess: (res) => {
@@ -239,7 +308,6 @@ export function OnboardingFlow({ onComplete }: Props) {
           }
         },
         onError: () => {
-          // Fallback: show generic error in chat
           setHistory((prev) => [
             ...prev,
             {
@@ -259,7 +327,26 @@ export function OnboardingFlow({ onComplete }: Props) {
     );
   };
 
-  const quickReplies = QUICK_REPLIES[onboardingState.step] ?? [];
+  // Skip: marks onboarding as complete so it never shows again
+  const handleSkipConfirm = () => {
+    setIsSkipping(true);
+    markComplete(
+      { onboardingCompleted: true },
+      {
+        onSuccess: onComplete,
+        onError: onComplete, // dismiss even on error
+      },
+    );
+  };
+
+  const currentState =
+    history.length > 0
+      ? onboardingState
+      : (welcome?.initialState ?? { step: 'WELCOME' });
+  const quickReplies = QUICK_REPLIES[currentState.step] ?? [];
+  const stepIndex = STEPS.indexOf(currentState.step as (typeof STEPS)[number]);
+  // Don't show skip once user has passed WELCOME (they're invested), or on COMPLETE
+  const showSkipButton = !isComplete && onboardingState.step !== 'COMPLETE';
 
   return (
     <div
@@ -274,6 +361,15 @@ export function OnboardingFlow({ onComplete }: Props) {
           boxShadow: '0 0 80px rgba(124,92,252,0.15)',
         }}
       >
+        {/* Skip confirm overlay */}
+        {showSkipConfirm && (
+          <SkipConfirmModal
+            onConfirm={handleSkipConfirm}
+            onCancel={() => setShowSkipConfirm(false)}
+            isLoading={isSkipping}
+          />
+        )}
+
         {/* Glow orb */}
         <div
           className='absolute -top-24 -right-24 w-56 h-56 rounded-full pointer-events-none'
@@ -309,11 +405,32 @@ export function OnboardingFlow({ onComplete }: Props) {
           </div>
 
           <div className='flex flex-col items-end gap-1.5'>
-            <StepDots currentStep={onboardingState.step} />
+            <div className='flex items-center gap-3'>
+              {/* Skip button — visible throughout */}
+              {showSkipButton && (
+                <button
+                  onClick={() => setShowSkipConfirm(true)}
+                  className='font-mono text-[10px] uppercase tracking-wider transition-colors flex items-center gap-1'
+                  style={{ color: '#4a4870' }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = '#8b89b0')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = '#4a4870')
+                  }
+                >
+                  Skip
+                  <X className='w-3 h-3' />
+                </button>
+              )}
+              <StepDots currentStep={currentState.step} />
+            </div>
             <span className='font-mono text-[9px] text-[#4a4870]'>
-              {onboardingState.step === 'COMPLETE'
+              {currentState.step === 'COMPLETE'
                 ? 'Done!'
-                : `Step ${Math.max(0, STEPS.indexOf(onboardingState.step as (typeof STEPS)[number]))} of ${STEPS.length - 1}`}
+                : stepIndex > 0
+                  ? `Step ${stepIndex} of ${STEPS.length - 1}`
+                  : 'Optional · skip anytime'}
             </span>
           </div>
         </div>
@@ -326,7 +443,12 @@ export function OnboardingFlow({ onComplete }: Props) {
             </div>
           ) : (
             <>
-              {history.map((msg, i) => (
+              {(history.length > 0
+                ? history
+                : welcome?.message
+                  ? [{ role: 'assistant' as const, content: welcome.message }]
+                  : []
+              ).map((msg, i) => (
                 <Bubble key={i} role={msg.role} text={msg.content} />
               ))}
               {sending && <TypingIndicator />}
@@ -412,7 +534,6 @@ export function OnboardingFlow({ onComplete }: Props) {
                 background: 'rgba(13,13,26,0.9)',
                 border: '1px solid rgba(124,92,252,0.2)',
               }}
-              onFocus={() => {}}
             >
               <input
                 ref={inputRef}
