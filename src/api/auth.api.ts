@@ -38,6 +38,9 @@ export interface UserSettings {
   onboardingCompleted: boolean;
   currency: string;
   alertThreshold: number | null;
+  monthlyIncome?: number | null; // ← was missing
+  netWorthAssets?: number | null; // ← was missing
+  netWorthLiabilities?: number | null; // ← was missing
 }
 
 export interface TokenPair {
@@ -72,7 +75,6 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
-  // Google OAuth
   getGoogleAuthUrl: () => request<{ url: string }>('/auth/google'),
   googleCallback: (code: string) =>
     request<AuthResult>('/auth/google/callback', {
@@ -85,19 +87,21 @@ export const authApi = {
       body: JSON.stringify({ idToken }),
     }),
 
-  // Password reset
   forgotPassword: (email: string) =>
     request<void>('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
-  resetPassword: (token: string, newPassword: string, confirmPassword: string) =>
+  resetPassword: (
+    token: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) =>
     request<void>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword, confirmPassword }),
     }),
 
-  // Email verification
   verifyEmail: (token: string) =>
     request<void>('/auth/verify-email', {
       method: 'POST',
@@ -109,7 +113,6 @@ export const authApi = {
       body: JSON.stringify({ email }),
     }),
 
-  // User settings
   getUserSettings: () => request<UserSettings>('/user/settings'),
   updateUserSettings: (data: Partial<UserSettings>) =>
     request<UserSettings>('/user/settings', {
@@ -117,12 +120,10 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
-  // Profile
   updateProfile: (name: string) =>
     request<PublicUser>('/user/profile', {
       method: 'PATCH',
       body: JSON.stringify({ name }),
     }),
-  deleteAccount: () =>
-    request<void>('/user', { method: 'DELETE' }),
+  deleteAccount: () => request<void>('/user', { method: 'DELETE' }),
 };

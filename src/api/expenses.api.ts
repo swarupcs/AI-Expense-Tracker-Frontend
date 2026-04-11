@@ -20,6 +20,8 @@ export interface Expense {
   category: Category;
   date: string;
   notes?: string;
+  merchant?: string; // ← was missing
+  isTaxDeductible?: boolean; // ← was missing
   createdAt: string;
   updatedAt: string;
   userId: number;
@@ -51,6 +53,8 @@ export interface CreateExpenseInput {
   category?: Category;
   date?: string;
   notes?: string;
+  merchant?: string; // ← was missing
+  isTaxDeductible?: boolean; // ← was missing
 }
 
 export interface UpdateExpenseInput {
@@ -61,6 +65,8 @@ export interface UpdateExpenseInput {
   category?: Category;
   date?: string;
   notes?: string;
+  merchant?: string; // ← was missing
+  isTaxDeductible?: boolean; // ← was missing
 }
 
 // ─── Budget types ─────────────────────────────────────────────────────────────
@@ -95,8 +101,7 @@ export const budgetApi = {
   },
   upsert: (data: UpsertBudgetInput) =>
     request<Budget>('/budgets', { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    request<void>(`/budgets/${id}`, { method: 'DELETE' }),
+  delete: (id: number) => request<void>(`/budgets/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Recurring Expense types ──────────────────────────────────────────────────
@@ -139,9 +144,15 @@ export interface UpdateRecurringInput {
 export const recurringApi = {
   list: () => request<RecurringExpense[]>('/recurring'),
   create: (data: CreateRecurringInput) =>
-    request<RecurringExpense>('/recurring', { method: 'POST', body: JSON.stringify(data) }),
+    request<RecurringExpense>('/recurring', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   update: (id: number, data: UpdateRecurringInput) =>
-    request<RecurringExpense>(`/recurring/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    request<RecurringExpense>(`/recurring/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   delete: (id: number) =>
     request<void>(`/recurring/${id}`, { method: 'DELETE' }),
 };
@@ -183,7 +194,12 @@ export const expensesApi = {
       method: 'DELETE',
       body: JSON.stringify({ ids }),
     }),
-  exportCsv: (filters?: { from?: string; to?: string; category?: Category; search?: string }) => {
+  exportCsv: (filters?: {
+    from?: string;
+    to?: string;
+    category?: Category;
+    search?: string;
+  }) => {
     const params = new URLSearchParams();
     if (filters?.from) params.set('from', filters.from);
     if (filters?.to) params.set('to', filters.to);

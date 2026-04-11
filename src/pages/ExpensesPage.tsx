@@ -10,6 +10,8 @@ import {
   Loader2,
   SlidersHorizontal,
   RefreshCw,
+  Receipt,
+  ShieldCheck,
 } from 'lucide-react';
 import { ExportDialog } from '@/components/ExportDialog';
 import {
@@ -106,6 +108,8 @@ const EMPTY_FORM = {
   notes: '',
   currency: 'INR',
   exchangeRate: '1',
+  merchant: '',
+  isTaxDeductible: false,
 };
 
 // ─── Expense Form ─────────────────────────────────────────────────────────────
@@ -133,7 +137,6 @@ function ExpenseForm({
     isForeign ? formData.currency : homeCurrency,
   );
 
-  // Auto-fill exchange rate when currency changes
   useEffect(() => {
     if (!isForeign) {
       setFormData((p) => ({ ...p, exchangeRate: '1' }));
@@ -147,7 +150,9 @@ function ExpenseForm({
 
   const previewConverted =
     isForeign && formData.amount && formData.exchangeRate
-      ? (parseFloat(formData.amount) * parseFloat(formData.exchangeRate)).toFixed(2)
+      ? (
+          parseFloat(formData.amount) * parseFloat(formData.exchangeRate)
+        ).toFixed(2)
       : null;
 
   return (
@@ -175,11 +180,11 @@ function ExpenseForm({
             setFormData((p) => ({ ...p, title: e.target.value }))
           }
           placeholder='e.g., Coffee'
-          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)] h-11'
+          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 h-11'
         />
       </div>
 
-      {/* Amount + Currency row */}
+      {/* Amount + Currency */}
       <div className='grid grid-cols-[1fr_140px] gap-2'>
         <div className='space-y-1.5'>
           <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
@@ -194,7 +199,7 @@ function ExpenseForm({
               setFormData((p) => ({ ...p, amount: e.target.value }))
             }
             placeholder='0.00'
-            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)] h-11'
+            className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 h-11'
           />
         </div>
         <div className='space-y-1.5'>
@@ -208,9 +213,16 @@ function ExpenseForm({
             <SelectTrigger className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] h-11'>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]' style={{ maxHeight: '280px' }}>
+            <SelectContent
+              className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]'
+              style={{ maxHeight: '280px' }}
+            >
               {CURRENCIES.map((c) => (
-                <SelectItem key={c.code} value={c.code} className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'>
+                <SelectItem
+                  key={c.code}
+                  value={c.code}
+                  className='text-[#f0efff] focus:bg-[rgba(124,92,252,0.1)]'
+                >
                   {c.code}
                 </SelectItem>
               ))}
@@ -219,29 +231,34 @@ function ExpenseForm({
         </div>
       </div>
 
-      {/* Exchange rate row (shown only for foreign currency) */}
+      {/* Exchange rate (foreign currency) */}
       {isForeign && (
         <div className='space-y-1.5'>
           <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest flex items-center gap-1.5'>
             Rate ({formData.currency} → {homeCurrency})
-            {fetchingRates && <RefreshCw className='h-3 w-3 animate-spin text-[#7c5cfc]' />}
+            {fetchingRates && (
+              <RefreshCw className='h-3 w-3 animate-spin text-[#7c5cfc]' />
+            )}
           </Label>
           <Input
             type='number'
             step='0.0001'
             value={formData.exchangeRate}
-            onChange={(e) => setFormData((p) => ({ ...p, exchangeRate: e.target.value }))}
+            onChange={(e) =>
+              setFormData((p) => ({ ...p, exchangeRate: e.target.value }))
+            }
             className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 h-11'
           />
           {previewConverted && (
             <p className='font-mono text-[10px] text-[#00d4ff]'>
-              ≈ {getCurrencySymbol(homeCurrency)}{Number(previewConverted).toLocaleString()} {homeCurrency}
+              ≈ {getCurrencySymbol(homeCurrency)}
+              {Number(previewConverted).toLocaleString()} {homeCurrency}
             </p>
           )}
         </div>
       )}
 
-      {/* Category + Date side by side */}
+      {/* Category + Date */}
       <div className='grid grid-cols-2 gap-3'>
         <div className='space-y-1.5'>
           <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
@@ -253,7 +270,7 @@ function ExpenseForm({
               setFormData((p) => ({ ...p, category: v as Category }))
             }
           >
-            <SelectTrigger className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus:ring-[#7c5cfc]/30 h-11'>
+            <SelectTrigger className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] h-11'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className='bg-[#0d0d1a] border-[rgba(124,92,252,0.2)]'>
@@ -269,7 +286,6 @@ function ExpenseForm({
             </SelectContent>
           </Select>
         </div>
-
         <div className='space-y-1.5'>
           <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
             Date
@@ -285,6 +301,22 @@ function ExpenseForm({
         </div>
       </div>
 
+      {/* Merchant — NEW */}
+      <div className='space-y-1.5'>
+        <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest flex items-center gap-1.5'>
+          <Receipt className='w-3 h-3' /> Merchant
+          <span className='normal-case text-[#4a4870]'>(optional)</span>
+        </Label>
+        <Input
+          value={formData.merchant}
+          onChange={(e) =>
+            setFormData((p) => ({ ...p, merchant: e.target.value }))
+          }
+          placeholder='e.g. Zomato, BigBasket, Uber…'
+          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 h-11'
+        />
+      </div>
+
       {/* Notes */}
       <div className='space-y-1.5'>
         <Label className='font-mono text-[10px] text-[#8b89b0] uppercase tracking-widest'>
@@ -296,8 +328,47 @@ function ExpenseForm({
             setFormData((p) => ({ ...p, notes: e.target.value }))
           }
           placeholder='Any extra context…'
-          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.5)] h-11'
+          className='bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] focus-visible:ring-[#7c5cfc]/30 h-11'
         />
+      </div>
+
+      {/* Tax Deductible toggle — NEW */}
+      <div
+        className='flex items-center justify-between p-3 rounded-xl'
+        style={{
+          background: 'rgba(124,92,252,0.06)',
+          border: '1px solid rgba(124,92,252,0.12)',
+        }}
+      >
+        <div className='flex items-center gap-2'>
+          <ShieldCheck className='w-4 h-4 text-[#00ff87]' />
+          <div>
+            <p className='font-sans text-sm text-[#f0efff]'>Tax Deductible</p>
+            <p className='font-mono text-[10px] text-[#4a4870]'>
+              Mark as business/deductible expense
+            </p>
+          </div>
+        </div>
+        <button
+          type='button'
+          onClick={() =>
+            setFormData((p) => ({ ...p, isTaxDeductible: !p.isTaxDeductible }))
+          }
+          className='relative w-11 h-6 rounded-full transition-all duration-200 shrink-0'
+          style={{
+            background: formData.isTaxDeductible
+              ? '#00ff87'
+              : 'rgba(74,72,112,0.3)',
+            boxShadow: formData.isTaxDeductible
+              ? '0 0 10px rgba(0,255,135,0.4)'
+              : 'none',
+          }}
+        >
+          <span
+            className='absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200'
+            style={{ left: formData.isTaxDeductible ? '22px' : '2px' }}
+          />
+        </button>
       </div>
 
       {/* Actions */}
@@ -344,25 +415,20 @@ function MobileExpenseCard({
   const homeCurrency = useUserCurrency();
   const color = CATEGORY_COLORS[exp.category] ?? '#4a4870';
   const isForeign = exp.currency && exp.currency !== homeCurrency;
+
   return (
     <Card
-      className='border-[rgba(124,92,252,0.08)] active:border-[rgba(124,92,252,0.2)] transition-all'
+      className='border-[rgba(124,92,252,0.08)] transition-all'
       style={{ background: 'rgba(13,13,26,0.7)' }}
     >
       <CardContent className='p-3.5'>
         <div className='flex items-center gap-3'>
-          {/* Emoji icon */}
           <div
             className='w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0'
-            style={{
-              background: `${color}15`,
-              border: `1px solid ${color}25`,
-            }}
+            style={{ background: `${color}15`, border: `1px solid ${color}25` }}
           >
             {CATEGORY_EMOJI[exp.category] ?? '📦'}
           </div>
-
-          {/* Details */}
           <div className='flex-1 min-w-0'>
             <p className='font-sans text-sm font-semibold text-[#f0efff] truncate'>
               {exp.title}
@@ -377,23 +443,48 @@ function MobileExpenseCard({
               <span className='font-mono text-[9px] text-[#4a4870]'>
                 {exp.date}
               </span>
-              {exp.notes && (
-                <span className='font-mono text-[9px] text-[#4a4870] truncate max-w-[100px]'>
-                  · {exp.notes}
+              {/* Merchant badge — NEW */}
+              {exp.merchant && (
+                <span className='font-mono text-[9px] text-[#4a4870] flex items-center gap-0.5'>
+                  <Receipt className='w-2.5 h-2.5' /> {exp.merchant}
+                </span>
+              )}
+              {/* Tax deductible badge — NEW */}
+              {exp.isTaxDeductible && (
+                <span
+                  className='font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-0.5'
+                  style={{
+                    background: 'rgba(0,255,135,0.1)',
+                    color: '#00ff87',
+                    border: '1px solid rgba(0,255,135,0.2)',
+                  }}
+                >
+                  <ShieldCheck className='w-2.5 h-2.5' /> Tax
                 </span>
               )}
             </div>
           </div>
-
-          {/* Amount + actions */}
           <div className='flex flex-col items-end gap-2 shrink-0'>
             <div className='text-right'>
-              <span className='font-display text-base font-bold block' style={{ color }}>
-                {new Intl.NumberFormat(undefined, { style: 'currency', currency: exp.currency ?? homeCurrency, maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(exp.amount)}
+              <span
+                className='font-display text-base font-bold block'
+                style={{ color }}
+              >
+                {new Intl.NumberFormat(undefined, {
+                  style: 'currency',
+                  currency: exp.currency ?? homeCurrency,
+                  maximumFractionDigits: 2,
+                  minimumFractionDigits: 0,
+                }).format(exp.amount)}
               </span>
               {isForeign && (
                 <span className='font-mono text-[9px] text-[#4a4870]'>
-                  ≈ {new Intl.NumberFormat(undefined, { style: 'currency', currency: homeCurrency, maximumFractionDigits: 0 }).format(exp.convertedAmount)}
+                  ≈{' '}
+                  {new Intl.NumberFormat(undefined, {
+                    style: 'currency',
+                    currency: homeCurrency,
+                    maximumFractionDigits: 0,
+                  }).format(exp.convertedAmount)}
                 </span>
               )}
             </div>
@@ -428,6 +519,127 @@ function MobileExpenseCard({
   );
 }
 
+// ─── Filter Sheet (mobile) — now includes date range ─────────────────────────
+function FilterSheet({
+  open,
+  onClose,
+  selectedCategory,
+  onSelectCategory,
+  fromDate,
+  toDate,
+  onSetFrom,
+  onSetTo,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selectedCategory: Category | null;
+  onSelectCategory: (c: Category | null) => void;
+  fromDate: string;
+  toDate: string;
+  onSetFrom: (v: string) => void;
+  onSetTo: (v: string) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side='bottom'
+        className='rounded-t-3xl'
+        style={{
+          background: '#0d0d1a',
+          border: '1px solid rgba(124,92,252,0.2)',
+          maxHeight: '85dvh',
+          overflowY: 'auto',
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        }}
+      >
+        <SheetHeader className='mb-5'>
+          <SheetTitle className='font-display text-[#f0efff]'>
+            Filter Expenses
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Date range — NEW in mobile filter */}
+        <div className='mb-5 space-y-3'>
+          <p className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest'>
+            Date Range
+          </p>
+          <div className='grid grid-cols-2 gap-2'>
+            <div className='space-y-1'>
+              <Label className='font-mono text-[9px] text-[#4a4870]'>
+                From
+              </Label>
+              <Input
+                type='date'
+                value={fromDate}
+                onChange={(e) => onSetFrom(e.target.value)}
+                className='h-10 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff] text-sm'
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+            <div className='space-y-1'>
+              <Label className='font-mono text-[9px] text-[#4a4870]'>To</Label>
+              <Input
+                type='date'
+                value={toDate}
+                onChange={(e) => onSetTo(e.target.value)}
+                className='h-10 bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff] text-sm'
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+          </div>
+          {(fromDate || toDate) && (
+            <button
+              onClick={() => {
+                onSetFrom('');
+                onSetTo('');
+              }}
+              className='font-mono text-[10px] text-[#ff3b5c]'
+            >
+              Clear dates
+            </button>
+          )}
+        </div>
+
+        <p className='font-mono text-[10px] text-[#4a4870] uppercase tracking-widest mb-3'>
+          Category
+        </p>
+        <div className='grid grid-cols-2 gap-2.5'>
+          {[null, ...CATEGORIES].map((cat) => {
+            const isActive = selectedCategory === cat;
+            const color = cat ? CATEGORY_COLORS[cat] : '#7c5cfc';
+            return (
+              <button
+                key={cat ?? 'all'}
+                onClick={() => {
+                  onSelectCategory(cat);
+                  onClose();
+                }}
+                className='flex items-center gap-2.5 px-3.5 py-3 rounded-xl font-sans text-sm font-medium text-left transition-all'
+                style={{
+                  border: `1px solid ${isActive ? color + '50' : 'rgba(124,92,252,0.12)'}`,
+                  background: isActive ? `${color}15` : 'rgba(13,13,26,0.8)',
+                  color: isActive ? color : '#8b89b0',
+                }}
+              >
+                <span className='text-base'>
+                  {cat ? CATEGORY_EMOJI[cat] : '🔍'}
+                </span>
+                <span>{cat ? CATEGORY_LABEL[cat] : 'All'}</span>
+                {isActive && (
+                  <span
+                    className='ml-auto w-1.5 h-1.5 rounded-full'
+                    style={{ background: color }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
   const homeCurrency = useUserCurrency();
@@ -438,10 +650,17 @@ export default function ExpensesPage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
+  // Date range state — NEW
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
   const [showForm, setShowForm] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ ...EMPTY_FORM, currency: homeCurrency });
+  const [formData, setFormData] = useState({
+    ...EMPTY_FORM,
+    currency: homeCurrency,
+  });
   const [formError, setFormError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Expense | null>(null);
   const [showExport, setShowExport] = useState(false);
@@ -456,11 +675,23 @@ export default function ExpensesPage() {
   const expenses = data?.expenses ?? [];
   const isSaving = isCreating || isUpdating;
   const totalAmount = expenses.reduce((s, e) => s + e.convertedAmount, 0);
+  const hasActiveFilters = !!(
+    selectedCategory ||
+    fromDate ||
+    toDate ||
+    searchQuery
+  );
+
+  // Apply date range to filters
+  const applyDateFilter = (from: string, to: string) => {
+    setFromDate(from);
+    setToDate(to);
+    setFilters((p) => ({ ...p, from: from || undefined, to: to || undefined }));
+  };
 
   const handleCategorySelect = (cat: Category | null) => {
     setSelectedCategory(cat);
     setFilters((p) => ({ ...p, category: cat ?? undefined }));
-    setShowFilterSheet(false);
   };
 
   const handleSearch = (q: string) => {
@@ -490,6 +721,8 @@ export default function ExpensesPage() {
       category: formData.category,
       date: formData.date,
       notes: formData.notes || undefined,
+      merchant: formData.merchant || undefined, // NEW
+      isTaxDeductible: formData.isTaxDeductible, // NEW
     };
     try {
       if (editingId) {
@@ -514,18 +747,19 @@ export default function ExpensesPage() {
       notes: exp.notes ?? '',
       currency: exp.currency ?? homeCurrency,
       exchangeRate: (exp.exchangeRate ?? 1).toString(),
+      merchant: exp.merchant ?? '', // NEW
+      isTaxDeductible: exp.isTaxDeductible ?? false, // NEW
     });
     setEditingId(exp.id);
     setShowForm(true);
   };
-
 
   return (
     <div
       className='flex flex-col h-full'
       style={{ background: '#080810', overflow: 'hidden' }}
     >
-      {/* ── Sticky Header ── */}
+      {/* Sticky Header */}
       <div
         className='shrink-0 px-4 sm:px-6 py-3.5 sm:py-4'
         style={{
@@ -546,9 +780,7 @@ export default function ExpensesPage() {
                 : `${expenses.length} transactions · ${fmt(totalAmount)}`}
             </p>
           </div>
-
           <div className='flex items-center gap-2 shrink-0'>
-            {/* Export — desktop only */}
             <Button
               variant='outline'
               size='sm'
@@ -557,8 +789,6 @@ export default function ExpensesPage() {
             >
               <Download className='w-3.5 h-3.5' /> Export
             </Button>
-
-            {/* Filter button — mobile only */}
             <Button
               variant='outline'
               size='icon'
@@ -566,19 +796,17 @@ export default function ExpensesPage() {
               className='sm:hidden h-9 w-9 border-[rgba(124,92,252,0.18)] text-[#8b89b0] relative'
             >
               <SlidersHorizontal className='w-4 h-4' />
-              {selectedCategory && (
+              {hasActiveFilters && (
                 <span
                   className='absolute -top-1 -right-1 w-2 h-2 rounded-full'
                   style={{ background: '#7c5cfc' }}
                 />
               )}
             </Button>
-
-            {/* Add button */}
             <Button
               onClick={() => {
                 setEditingId(null);
-                setFormData(EMPTY_FORM);
+                setFormData({ ...EMPTY_FORM, currency: homeCurrency });
                 setShowForm(true);
               }}
               size='sm'
@@ -595,14 +823,14 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        {/* Search bar — always visible in header */}
+        {/* Search */}
         <div className='relative mt-3'>
           <Search className='absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#4a4870]' />
           <Input
             placeholder='Search expenses…'
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className='pl-10 h-10 bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] placeholder:text-[#4a4870] focus-visible:ring-[#7c5cfc]/30 focus-visible:border-[rgba(124,92,252,0.4)]'
+            className='pl-10 h-10 bg-[rgba(13,13,26,0.8)] border-[rgba(124,92,252,0.15)] text-[#f0efff] placeholder:text-[#4a4870] focus-visible:ring-[#7c5cfc]/30'
           />
           {searchQuery && (
             <button
@@ -614,31 +842,61 @@ export default function ExpensesPage() {
           )}
         </div>
 
-        {/* Category pills — desktop only (mobile uses filter sheet) */}
-        <div className='hidden sm:flex gap-2 mt-3 overflow-x-auto pb-0.5 scrollbar-hide flex-wrap'>
-          {[null, ...CATEGORIES].map((cat) => {
-            const isActive = selectedCategory === cat;
-            const color = cat ? CATEGORY_COLORS[cat] : '#7c5cfc';
-            return (
+        {/* Desktop filters: date range + category pills */}
+        <div className='hidden sm:flex items-center gap-3 mt-3 flex-wrap'>
+          {/* Date range — NEW on desktop */}
+          <div className='flex items-center gap-2 shrink-0'>
+            <Input
+              type='date'
+              value={fromDate}
+              onChange={(e) => applyDateFilter(e.target.value, toDate)}
+              className='h-8 w-36 text-xs bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff]'
+              style={{ colorScheme: 'dark' }}
+            />
+            <span className='font-mono text-[10px] text-[#4a4870]'>→</span>
+            <Input
+              type='date'
+              value={toDate}
+              onChange={(e) => applyDateFilter(fromDate, e.target.value)}
+              className='h-8 w-36 text-xs bg-[rgba(124,92,252,0.06)] border-[rgba(124,92,252,0.15)] text-[#f0efff]'
+              style={{ colorScheme: 'dark' }}
+            />
+            {(fromDate || toDate) && (
               <button
-                key={cat ?? 'all'}
-                onClick={() => handleCategorySelect(cat)}
-                className='shrink-0 px-3 py-1.5 rounded-full font-mono text-[10px] transition-all whitespace-nowrap'
-                style={{
-                  border: `1px solid ${isActive ? color + '60' : 'rgba(124,92,252,0.12)'}`,
-                  background: isActive ? `${color}15` : 'transparent',
-                  color: isActive ? color : '#8b89b0',
-                  boxShadow: isActive ? `0 0 12px ${color}20` : 'none',
-                }}
+                onClick={() => applyDateFilter('', '')}
+                className='text-[#4a4870] hover:text-[#ff3b5c] transition-colors'
               >
-                {cat ? CATEGORY_LABEL[cat] : 'All'}
+                <X className='w-3.5 h-3.5' />
               </button>
-            );
-          })}
+            )}
+          </div>
+
+          {/* Category pills */}
+          <div className='flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide'>
+            {[null, ...CATEGORIES].map((cat) => {
+              const isActive = selectedCategory === cat;
+              const color = cat ? CATEGORY_COLORS[cat] : '#7c5cfc';
+              return (
+                <button
+                  key={cat ?? 'all'}
+                  onClick={() => handleCategorySelect(cat)}
+                  className='shrink-0 px-3 py-1.5 rounded-full font-mono text-[10px] transition-all whitespace-nowrap'
+                  style={{
+                    border: `1px solid ${isActive ? color + '60' : 'rgba(124,92,252,0.12)'}`,
+                    background: isActive ? `${color}15` : 'transparent',
+                    color: isActive ? color : '#8b89b0',
+                    boxShadow: isActive ? `0 0 12px ${color}20` : 'none',
+                  }}
+                >
+                  {cat ? CATEGORY_LABEL[cat] : 'All'}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* ── Native-scroll content area ── */}
+      {/* Scrollable content */}
       <div
         className='flex-1 min-h-0'
         style={{
@@ -648,28 +906,39 @@ export default function ExpensesPage() {
         }}
       >
         <div className='p-4 sm:p-5 space-y-3 pb-6'>
-          {/* Active category badge on mobile */}
-          {selectedCategory && (
-            <div className='flex items-center gap-2 sm:hidden'>
-              <span className='font-mono text-[10px] text-[#4a4870]'>
-                Filtered by:
-              </span>
-              <button
-                onClick={() => handleCategorySelect(null)}
-                className='flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10px]'
-                style={{
-                  background: `${CATEGORY_COLORS[selectedCategory]}15`,
-                  border: `1px solid ${CATEGORY_COLORS[selectedCategory]}40`,
-                  color: CATEGORY_COLORS[selectedCategory],
-                }}
-              >
-                {CATEGORY_LABEL[selectedCategory]}
-                <X className='w-3 h-3' />
-              </button>
+          {/* Active filter badges (mobile) */}
+          {hasActiveFilters && (
+            <div className='flex items-center gap-2 flex-wrap sm:hidden'>
+              {(fromDate || toDate) && (
+                <button
+                  onClick={() => applyDateFilter('', '')}
+                  className='flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10px]'
+                  style={{
+                    background: 'rgba(124,92,252,0.12)',
+                    border: '1px solid rgba(124,92,252,0.3)',
+                    color: '#9d7fff',
+                  }}
+                >
+                  {fromDate || '…'} → {toDate || '…'} <X className='w-3 h-3' />
+                </button>
+              )}
+              {selectedCategory && (
+                <button
+                  onClick={() => handleCategorySelect(null)}
+                  className='flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10px]'
+                  style={{
+                    background: `${CATEGORY_COLORS[selectedCategory]}15`,
+                    border: `1px solid ${CATEGORY_COLORS[selectedCategory]}40`,
+                    color: CATEGORY_COLORS[selectedCategory],
+                  }}
+                >
+                  {CATEGORY_LABEL[selectedCategory]} <X className='w-3 h-3' />
+                </button>
+              )}
             </div>
           )}
 
-          {/* ── Loading skeletons ── */}
+          {/* Loading skeletons */}
           {isLoading && (
             <div className='space-y-2.5'>
               {Array.from({ length: 5 }).map((_, i) => (
@@ -682,7 +951,7 @@ export default function ExpensesPage() {
             </div>
           )}
 
-          {/* ── Empty state ── */}
+          {/* Empty state */}
           {!isLoading && expenses.length === 0 && (
             <div className='flex flex-col items-center justify-center py-20 text-center'>
               <div className='text-5xl mb-4'>📭</div>
@@ -690,17 +959,29 @@ export default function ExpensesPage() {
                 No expenses found
               </p>
               <p className='text-[#4a4870] text-sm'>
-                {searchQuery || selectedCategory
+                {hasActiveFilters
                   ? 'Try adjusting your filters'
                   : 'Tap "Add" to record your first expense'}
               </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setFilters({});
+                    setSearchQuery('');
+                    setSelectedCategory(null);
+                    applyDateFilter('', '');
+                  }}
+                  className='mt-4 font-mono text-[10px] text-[#7c5cfc] underline underline-offset-2'
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           )}
 
-          {/* ── Mobile card list ── */}
+          {/* Mobile cards */}
           {!isLoading && expenses.length > 0 && (
             <>
-              {/* Mobile cards */}
               <div className='sm:hidden space-y-2.5'>
                 {expenses.map((exp) => (
                   <MobileExpenseCard
@@ -726,16 +1007,21 @@ export default function ExpensesPage() {
                     <tr
                       style={{ borderBottom: '1px solid rgba(124,92,252,0.1)' }}
                     >
-                      {['Title', 'Category', 'Amount', 'Date', 'Actions'].map(
-                        (h) => (
-                          <th
-                            key={h}
-                            className='px-5 py-3.5 font-mono text-[10px] text-[#4a4870] uppercase tracking-widest font-medium text-left'
-                          >
-                            {h}
-                          </th>
-                        ),
-                      )}
+                      {[
+                        'Title',
+                        'Category',
+                        'Amount',
+                        'Date',
+                        'Merchant',
+                        'Actions',
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className='px-5 py-3.5 font-mono text-[10px] text-[#4a4870] uppercase tracking-widest font-medium text-left'
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -749,8 +1035,23 @@ export default function ExpensesPage() {
                             borderBottom: '1px solid rgba(124,92,252,0.06)',
                           }}
                         >
-                          <td className='px-5 py-3.5 font-sans text-sm font-medium text-[#f0efff]'>
-                            {exp.title}
+                          <td className='px-5 py-3.5'>
+                            <div className='font-sans text-sm font-medium text-[#f0efff]'>
+                              {exp.title}
+                            </div>
+                            {/* Tax badge in title cell — NEW */}
+                            {exp.isTaxDeductible && (
+                              <span
+                                className='inline-flex items-center gap-0.5 font-mono text-[9px] px-1.5 py-0.5 rounded mt-0.5'
+                                style={{
+                                  background: 'rgba(0,255,135,0.1)',
+                                  color: '#00ff87',
+                                  border: '1px solid rgba(0,255,135,0.2)',
+                                }}
+                              >
+                                <ShieldCheck className='w-2.5 h-2.5' /> Tax
+                              </span>
+                            )}
                           </td>
                           <td className='px-5 py-3.5'>
                             <span
@@ -772,8 +1073,16 @@ export default function ExpensesPage() {
                             </span>
                           </td>
                           <td className='px-5 py-3.5'>
-                            <div className='font-display text-sm font-bold' style={{ color }}>
-                              {new Intl.NumberFormat(undefined, { style: 'currency', currency: exp.currency ?? homeCurrency, maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(exp.amount)}
+                            <div
+                              className='font-display text-sm font-bold'
+                              style={{ color }}
+                            >
+                              {new Intl.NumberFormat(undefined, {
+                                style: 'currency',
+                                currency: exp.currency ?? homeCurrency,
+                                maximumFractionDigits: 2,
+                                minimumFractionDigits: 0,
+                              }).format(exp.amount)}
                             </div>
                             {exp.currency && exp.currency !== homeCurrency && (
                               <div className='font-mono text-[9px] text-[#4a4870] mt-0.5'>
@@ -788,11 +1097,24 @@ export default function ExpensesPage() {
                               year: 'numeric',
                             })}
                           </td>
+                          {/* Merchant column — NEW */}
+                          <td className='px-5 py-3.5'>
+                            {exp.merchant ? (
+                              <span className='font-mono text-[10px] text-[#8b89b0] flex items-center gap-1'>
+                                <Receipt className='w-3 h-3 text-[#4a4870]' />{' '}
+                                {exp.merchant}
+                              </span>
+                            ) : (
+                              <span className='font-mono text-[10px] text-[#2d2b4e]'>
+                                —
+                              </span>
+                            )}
+                          </td>
                           <td className='px-5 py-3.5'>
                             <div className='flex gap-1.5'>
                               <button
                                 onClick={() => handleEdit(exp)}
-                                className='w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all hover:bg-[rgba(91,143,255,0.15)]'
+                                className='w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all'
                                 style={{
                                   background: 'rgba(91,143,255,0.08)',
                                   border: '1px solid rgba(91,143,255,0.2)',
@@ -803,7 +1125,7 @@ export default function ExpensesPage() {
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(exp)}
-                                className='w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all hover:bg-[rgba(255,59,92,0.15)]'
+                                className='w-[30px] h-[30px] rounded-lg flex items-center justify-center transition-all'
                                 style={{
                                   background: 'rgba(255,59,92,0.08)',
                                   border: '1px solid rgba(255,59,92,0.2)',
@@ -821,7 +1143,7 @@ export default function ExpensesPage() {
                 </table>
               </div>
 
-              {/* Export — mobile bottom */}
+              {/* Export — mobile */}
               <div className='sm:hidden pt-1'>
                 <Button
                   variant='outline'
@@ -836,7 +1158,7 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* ── Add/Edit form sheet (mobile) ── */}
+      {/* Add/Edit form sheet (mobile) */}
       <Sheet
         open={showForm}
         onOpenChange={(open) => {
@@ -849,7 +1171,7 @@ export default function ExpensesPage() {
           style={{
             background: '#0d0d1a',
             border: '1px solid rgba(124,92,252,0.2)',
-            maxHeight: '92dvh',
+            maxHeight: '95dvh',
             overflowY: 'auto',
             paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
           }}
@@ -872,7 +1194,7 @@ export default function ExpensesPage() {
         </SheetContent>
       </Sheet>
 
-      {/* ── Desktop inline form ── */}
+      {/* Desktop inline form */}
       {showForm && (
         <div
           className='hidden sm:block fixed inset-x-0 bottom-0 z-30 px-6 pb-6'
@@ -913,55 +1235,19 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* ── Mobile filter sheet ── */}
-      <Sheet open={showFilterSheet} onOpenChange={setShowFilterSheet}>
-        <SheetContent
-          side='bottom'
-          className='rounded-t-3xl'
-          style={{
-            background: '#0d0d1a',
-            border: '1px solid rgba(124,92,252,0.2)',
-            paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
-          }}
-        >
-          <SheetHeader className='mb-5'>
-            <SheetTitle className='font-display text-[#f0efff]'>
-              Filter by Category
-            </SheetTitle>
-          </SheetHeader>
-          <div className='grid grid-cols-2 gap-2.5'>
-            {[null, ...CATEGORIES].map((cat) => {
-              const isActive = selectedCategory === cat;
-              const color = cat ? CATEGORY_COLORS[cat] : '#7c5cfc';
-              return (
-                <button
-                  key={cat ?? 'all'}
-                  onClick={() => handleCategorySelect(cat)}
-                  className='flex items-center gap-2.5 px-3.5 py-3 rounded-xl font-sans text-sm font-medium text-left transition-all'
-                  style={{
-                    border: `1px solid ${isActive ? color + '50' : 'rgba(124,92,252,0.12)'}`,
-                    background: isActive ? `${color}15` : 'rgba(13,13,26,0.8)',
-                    color: isActive ? color : '#8b89b0',
-                  }}
-                >
-                  <span className='text-base'>
-                    {cat ? CATEGORY_EMOJI[cat] : '🔍'}
-                  </span>
-                  <span>{cat ? CATEGORY_LABEL[cat] : 'All'}</span>
-                  {isActive && (
-                    <span
-                      className='ml-auto w-1.5 h-1.5 rounded-full'
-                      style={{ background: color }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Mobile filter sheet (now includes date range) */}
+      <FilterSheet
+        open={showFilterSheet}
+        onClose={() => setShowFilterSheet(false)}
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleCategorySelect}
+        fromDate={fromDate}
+        toDate={toDate}
+        onSetFrom={(v) => applyDateFilter(v, toDate)}
+        onSetTo={(v) => applyDateFilter(fromDate, v)}
+      />
 
-      {/* ── Export dialog ── */}
+      {/* Export dialog */}
       <ExportDialog
         open={showExport}
         onClose={() => setShowExport(false)}
@@ -970,7 +1256,7 @@ export default function ExpensesPage() {
         defaultCategory={filters.category}
       />
 
-      {/* ── Delete confirm dialog ── */}
+      {/* Delete confirm */}
       <AlertDialog
         open={!!deleteConfirm}
         onOpenChange={(open) => {
