@@ -11,7 +11,6 @@ import {
   X,
   Trash2,
   ShieldAlert,
-  Calendar,
   BellRing,
   Wallet,
 } from 'lucide-react';
@@ -72,36 +71,35 @@ export default function SettingsPage() {
   const { mutate: saveSettings, isPending: isSavingSettings } =
     useUpdateUserSettings();
 
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    budgetAlerts: true,
-    weeklyReport: false,
-    currency: 'INR',
-  });
-  const [settingsSaved, setSettingsSaved] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState('');
-  const [monthlyIncome, setMonthlyIncome] = useState(''); // NEW
-
-  useEffect(() => {
+  const [settings, setSettings] = useState(() => {
     if (remoteSettings) {
-      setSettings({
+      return {
         emailNotifications: remoteSettings.emailNotifications,
         budgetAlerts: remoteSettings.budgetAlerts,
         weeklyReport: remoteSettings.weeklyReport,
         currency: remoteSettings.currency,
-      });
-      setAlertThreshold(
-        remoteSettings.alertThreshold != null
-          ? String(remoteSettings.alertThreshold)
-          : '',
-      );
-      setMonthlyIncome(
-        remoteSettings.monthlyIncome != null
-          ? String(remoteSettings.monthlyIncome)
-          : '',
-      );
+      };
     }
-  }, [remoteSettings]);
+    return {
+      emailNotifications: true,
+      budgetAlerts: true,
+      weeklyReport: false,
+      currency: 'INR',
+    };
+  });
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState(() => {
+    if (remoteSettings?.alertThreshold != null) {
+      return String(remoteSettings.alertThreshold);
+    }
+    return '';
+  });
+  const [monthlyIncome, setMonthlyIncome] = useState(() => {
+    if (remoteSettings?.monthlyIncome != null) {
+      return String(remoteSettings.monthlyIncome);
+    }
+    return '';
+  });
 
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState('');

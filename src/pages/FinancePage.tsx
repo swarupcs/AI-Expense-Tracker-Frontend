@@ -7,7 +7,6 @@ import {
 } from '@/services/finance.service';
 import { useFmt } from '@/hooks/useCurrency';
 import { useUserSettings } from '@/services/auth.service';
-import type { Category } from '@/api/expenses.api';
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from '@/components/ui/card';
@@ -15,15 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  TrendingUp, TrendingDown, Wallet, FileText,
-  Store, Cpu, CheckCircle2, ArrowRight,
+import { Wallet, FileText,
+  Store, Cpu, CheckCircle2,
   AlertCircle, BarChart2, Loader2,
 } from 'lucide-react';
 
 type Tab = 'networth' | 'zero-budget' | 'tax' | 'merchants' | 'ai-stats';
 
-function TabPill({ id, label, icon: Icon, active, onClick }: {
+function TabPill({ label, icon: Icon, active, onClick }: {
   id: Tab; label: string; icon: React.ElementType; active: boolean; onClick: () => void;
 }) {
   return (

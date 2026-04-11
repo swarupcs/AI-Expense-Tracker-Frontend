@@ -21,8 +21,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +36,6 @@ import {
   Brain,
   BarChart2,
   Calendar,
-  ChevronRight,
   Lightbulb,
   ShieldCheck,
   Zap,
@@ -61,7 +58,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 type Tab = 'overview' | 'forecast' | 'compare' | 'anomalies' | 'patterns' | 'health' | 'recommendations';
 
 // ─── Tab Pill ─────────────────────────────────────────────────────────────────
-function TabPill({ id, label, icon: Icon, active, onClick }: {
+function TabPill({ label, icon: Icon, active, onClick }: {
   id: Tab; label: string; icon: React.ElementType; active: boolean; onClick: () => void;
 }) {
   return (

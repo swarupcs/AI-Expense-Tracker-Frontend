@@ -22,7 +22,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  X,
   Save,
   Eye,
 } from 'lucide-react';
@@ -30,7 +29,6 @@ import {
 type Tab = 'receipt' | 'bulk' | 'csv';
 
 function TabPill({
-  id,
   label,
   icon: Icon,
   active,
@@ -70,7 +68,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ─── Receipt Tab ──────────────────────────────────────────────────────────────
 function ReceiptTab() {
-  const fmt = useFmt();
   const fileRef = useRef<HTMLInputElement>(null);
   const { mutate: parse, isPending, data: result, reset } = useParseReceipt();
   const { mutate: createExpense, isPending: saving } = useCreateExpense();

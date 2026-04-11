@@ -148,6 +148,8 @@ export default function Dashboard() {
     limit: 500,
   });
 
+  // console.log({expData})
+
   const isLoading = statsLoading || expLoading;
   const expenses = expData?.expenses ?? [];
   const stats = statsData;
