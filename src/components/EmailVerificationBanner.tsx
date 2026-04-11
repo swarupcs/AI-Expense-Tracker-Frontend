@@ -10,7 +10,12 @@ export function EmailVerificationBanner() {
   const { mutate: resend, isPending } = useResendVerification();
 
   // Only show for local auth users with unverified email
-  if (!user || user.emailVerified || user.authProvider === 'google' || dismissed) {
+  if (
+    !user ||
+    user.emailVerified === true ||
+    user.authProvider === 'google' ||
+    dismissed
+  ) {
     return null;
   }
 
@@ -32,14 +37,17 @@ export function EmailVerificationBanner() {
 
       <span className='flex-1 font-sans text-xs' style={{ color: '#f0efff' }}>
         {sent ? (
-          <span className='flex items-center gap-1.5' style={{ color: '#00ff87' }}>
+          <span
+            className='flex items-center gap-1.5'
+            style={{ color: '#00ff87' }}
+          >
             <CheckCircle2 className='w-3.5 h-3.5' />
             Verification email sent — check your inbox.
           </span>
         ) : (
           <>
-            <span style={{ color: '#ffb830' }}>Verify your email</span>
-            {' '}to secure your account.{' '}
+            <span style={{ color: '#ffb830' }}>Verify your email</span> to
+            secure your account.{' '}
             <button
               onClick={handleResend}
               disabled={isPending}
