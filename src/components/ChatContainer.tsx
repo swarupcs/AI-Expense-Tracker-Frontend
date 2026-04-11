@@ -10,7 +10,6 @@ import {
   Target,
   Trash2,
   Zap,
-  Loader2,
 } from 'lucide-react';
 import { streamChat, chatApi } from '@/api/chat.api';
 import { Button } from '@/components/ui/button';
@@ -41,37 +40,8 @@ export function ChatContainer() {
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const cancelRef = useRef<(() => void) | null>(null);
-
-  // Load chat history on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await chatApi.getHistory(threadId, 100);
-        if (cancelled) return;
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          const restored: StreamMessage[] = res.data.map(
-            (m: { id: number; role: string; content: string }) => ({
-              id: String(m.id),
-              type: m.role === 'user' ? 'user' : 'ai',
-              payload: { text: m.content },
-            }),
-          );
-          setMessages(restored);
-        }
-      } catch {
-        // Silently ignore — history not critical
-      } finally {
-        if (!cancelled) setIsLoadingHistory(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [threadId]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -276,14 +246,7 @@ export function ChatContainer() {
       {/* Messages */}
       <div className='flex-1 min-h-0 overflow-y-auto'>
         <div className='max-w-[760px] mx-auto'>
-          {/* History loading spinner */}
-          {isLoadingHistory && (
-            <div className='flex items-center justify-center py-8'>
-              <Loader2 className='w-5 h-5 text-[#4a4870] animate-spin' />
-            </div>
-          )}
-
-          {!isLoadingHistory && messages.length === 0 ? (
+          {messages.length === 0 ? (
             <div className='flex flex-col items-center justify-center min-h-[60vh] px-4 py-8 text-center'>
               <div
                 className='w-14 h-14 sm:w-[72px] sm:h-[72px] rounded-2xl flex items-center justify-center mb-5 sm:mb-6'
@@ -337,40 +300,38 @@ export function ChatContainer() {
               </div>
             </div>
           ) : (
-            !isLoadingHistory && (
-              <div>
-                {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
-                {isStreaming && (
-                  <div className='flex gap-3 sm:gap-3.5 px-3 sm:px-6 py-4 sm:py-5'>
-                    <div
-                      className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
-                      style={{
-                        background:
-                          'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
-                        border: '1px solid rgba(124,92,252,0.3)',
-                      }}
-                    >
-                      <Cpu className='w-3.5 h-3.5 text-[#9d7fff]' />
-                    </div>
-                    <div className='flex items-center gap-1.5 pt-1.5'>
-                      {[0, 150, 300].map((delay) => (
-                        <div
-                          key={delay}
-                          className='w-1.5 h-1.5 rounded-full'
-                          style={{
-                            background: '#9d7fff',
-                            animation: `bounce 1s ${delay}ms ease-in-out infinite`,
-                          }}
-                        />
-                      ))}
-                    </div>
+            <div>
+              {messages.map((msg) => (
+                <ChatMessage key={msg.id} message={msg} />
+              ))}
+              {isStreaming && (
+                <div className='flex gap-3 sm:gap-3.5 px-3 sm:px-6 py-4 sm:py-5'>
+                  <div
+                    className='w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0'
+                    style={{
+                      background:
+                        'linear-gradient(135deg, rgba(124,92,252,0.3), rgba(0,212,255,0.2))',
+                      border: '1px solid rgba(124,92,252,0.3)',
+                    }}
+                  >
+                    <Cpu className='w-3.5 h-3.5 text-[#9d7fff]' />
                   </div>
-                )}
-                <div ref={messageEndRef} style={{ height: '16px' }} />
-              </div>
-            )
+                  <div className='flex items-center gap-1.5 pt-1.5'>
+                    {[0, 150, 300].map((delay) => (
+                      <div
+                        key={delay}
+                        className='w-1.5 h-1.5 rounded-full'
+                        style={{
+                          background: '#9d7fff',
+                          animation: `bounce 1s ${delay}ms ease-in-out infinite`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div ref={messageEndRef} style={{ height: '16px' }} />
+            </div>
           )}
         </div>
       </div>
