@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -108,7 +108,7 @@
 }
 
 @theme inline {
-  --font-sans:    "DM Sans", sans-serif;
+  --font-sans:    "Outfit", sans-serif;
   --font-mono:    "JetBrains Mono", monospace;
   --font-display: "Syne", sans-serif;
 
@@ -157,7 +157,7 @@
   html { color-scheme: dark; scroll-behavior: smooth; }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "DM Sans", sans-serif;
+    font-family: "Outfit", sans-serif;
     background: var(--background);
     /*
       CRITICAL FIX: Do NOT set overflow:hidden on body.
