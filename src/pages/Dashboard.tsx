@@ -28,6 +28,10 @@ import {
   ArrowRight,
   AlertTriangle,
   ChevronDown,
+  ListOrdered,
+  Calendar,
+  ArrowUpCircle,
+  ArrowDownCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -241,7 +245,7 @@ function StatCard({
           >
             <Icon style={{ width: '16px', height: '16px', color: accent }} />
           </div>
-          <span className='font-mono text-[9px] text-[#4a4870] uppercase tracking-wider'>
+          <span className='font-mono text-[9px] text-[#4a4870] uppercase tracking-wider text-right max-w-[50%]'>
             {label}
           </span>
         </div>
@@ -249,7 +253,10 @@ function StatCard({
         {isLoading ? (
           <div className='h-7 rounded-lg bg-[rgba(124,92,252,0.08)] mb-2 shimmer' />
         ) : (
-          <div className='font-display text-xl sm:text-2xl font-extrabold text-[#f0efff] tracking-tight mb-1.5 leading-none'>
+          <div 
+            className='font-display text-xl sm:text-2xl font-extrabold tracking-tight mb-1.5 leading-none truncate'
+            style={{ color: accent }}
+          >
             {value}
           </div>
         )}
@@ -291,6 +298,30 @@ export default function Dashboard() {
   const isLoading = statsLoading || expLoading;
   const expenses = expData?.expenses ?? [];
   const stats = statsData;
+
+  // Additional computed stats
+  const now = new Date();
+  const daysInPeriod = useMemo(() => {
+    if (period === 'weekly') return 7;
+    if (period === 'yearly') {
+      const isLeap = (now.getFullYear() % 4 === 0 && now.getFullYear() % 100 !== 0) || now.getFullYear() % 400 === 0;
+      return isLeap ? 366 : 365;
+    }
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  }, [period, now]);
+
+  const dailyAvg = (stats?.total ?? 0) / daysInPeriod;
+  
+  let maxTxn = 0;
+  let minTxn = Infinity;
+  for (const e of expenses) {
+    if (e.convertedAmount > maxTxn) maxTxn = e.convertedAmount;
+    if (e.convertedAmount < minTxn) minTxn = e.convertedAmount;
+  }
+  if (minTxn === Infinity) minTxn = 0;
+
+  const topCategory = stats?.byCategory?.[0];
+  const lowestCategory = stats?.byCategory?.[stats.byCategory.length - 1];
 
   // Build bar chart data — group by date (day for week, month for year, day for month)
   const barData = useMemo(() => {
@@ -421,7 +452,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── Stat Cards ── */}
-          <div className='grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3'>
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
             <StatCard
               label='Total Spent'
               value={fmt(stats?.total ?? 0)}
@@ -429,26 +460,66 @@ export default function Dashboard() {
               sub={
                 <>
                   <TrendingDown className='w-3 h-3 text-[#00ff87]' />
-                  {PERIOD_OPTIONS.find((o) => o.value === period)?.label}
+                  Overall total
                 </>
               }
               accent='#7c5cfc'
               isLoading={isLoading}
             />
             <StatCard
-              label='Avg Transaction'
-              value={fmt(Math.round(stats?.average ?? 0))}
-              icon={BarChart2}
-              sub={`${stats?.count ?? 0} transactions`}
+              label='Transactions'
+              value={String(stats?.count ?? 0)}
+              icon={ListOrdered}
+              sub='Total entries'
               accent='#00d4ff'
               isLoading={isLoading}
             />
             <StatCard
-              label='Top Category'
-              value={stats?.byCategory[0]?.category ?? 'None'}
-              icon={Activity}
-              sub={`${fmt(stats?.byCategory[0]?.amount ?? 0)} spent`}
+              label='Daily Avg'
+              value={fmt(dailyAvg)}
+              icon={Calendar}
+              sub='Per day'
+              accent='#00ff87'
+              isLoading={isLoading}
+            />
+            <StatCard
+              label='Avg / Txn'
+              value={fmt(stats?.average ?? 0)}
+              icon={BarChart2}
+              sub='Per transaction'
               accent='#ff2d78'
+              isLoading={isLoading}
+            />
+            <StatCard
+              label='Top Category'
+              value={topCategory?.category ?? '—'}
+              icon={Activity}
+              sub={`${fmt(topCategory?.amount ?? 0)}`}
+              accent='#ffb830'
+              isLoading={isLoading}
+            />
+            <StatCard
+              label='Lowest Category'
+              value={lowestCategory?.category ?? '—'}
+              icon={Activity}
+              sub={`${fmt(lowestCategory?.amount ?? 0)}`}
+              accent='#9d7fff'
+              isLoading={isLoading}
+            />
+            <StatCard
+              label='Largest Expense'
+              value={fmt(maxTxn)}
+              icon={ArrowUpCircle}
+              sub='Single max'
+              accent='#ff6b9d'
+              isLoading={isLoading}
+            />
+            <StatCard
+              label='Smallest Expense'
+              value={fmt(minTxn)}
+              icon={ArrowDownCircle}
+              sub='Single min'
+              accent='#5b8fff'
               isLoading={isLoading}
             />
           </div>
