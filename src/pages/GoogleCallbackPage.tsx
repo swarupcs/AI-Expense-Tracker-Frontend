@@ -23,7 +23,7 @@ export default function GoogleCallbackPage() {
       try {
         const user = JSON.parse(decodeURIComponent(userStr));
         login(user, accessToken, refreshToken);
-        navigate('/');
+        navigate('/dashboard');
       } catch {
         navigate('/login?error=google_auth_failed');
       }

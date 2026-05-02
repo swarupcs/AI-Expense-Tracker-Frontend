@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { useUserSettings } from '@/services/auth.service';
+import LandingPage from '@/pages/LandingPage';
 import Dashboard from '@/pages/Dashboard';
 import ChatPage from '@/pages/ChatPage';
 import ExpensesPage from '@/pages/ExpensesPage';
@@ -84,7 +85,7 @@ function AppShell() {
             }}
           >
             <Routes>
-              <Route path='/' element={<Dashboard />} />
+              <Route path='/dashboard' element={<Dashboard />} />
               <Route path='/chat' element={<ChatPage />} />
               <Route path='/expenses' element={<ExpensesPage />} />
               <Route path='/insights' element={<InsightsPage />} />
@@ -93,11 +94,10 @@ function AppShell() {
               <Route path='/recurring' element={<RecurringPage />} />
               <Route path='/goals' element={<GoalsPage />} />
               <Route path='/billing' element={<BillingPage />} />
-              {/* NEW PAGES */}
               <Route path='/finance' element={<FinancePage />} />
               <Route path='/import' element={<ImportPage />} />
               <Route path='/admin' element={<AdminPage />} />
-              <Route path='*' element={<Navigate to='/' replace />} />
+              <Route path='*' element={<Navigate to='/dashboard' replace />} />
             </Routes>
           </div>
         </main>
@@ -120,6 +120,7 @@ function App() {
       <BrowserRouter>
         <AuthHydrator>
           <Routes>
+            <Route path='/' element={<LandingPage />} />
             <Route path='/login' element={<LoginPage />} />
             <Route path='/signup' element={<SignupPage />} />
             <Route path='/forgot-password' element={<ForgotPasswordPage />} />

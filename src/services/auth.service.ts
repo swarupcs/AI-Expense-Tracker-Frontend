@@ -39,7 +39,7 @@ export function useSignUp() {
     },
     onSuccess: (data) => {
       login(data.user, data.tokens.accessToken, data.tokens.refreshToken);
-      navigate('/');
+      navigate('/dashboard');
     },
   });
 }
@@ -56,7 +56,7 @@ export function useSignIn() {
     },
     onSuccess: (data) => {
       login(data.user, data.tokens.accessToken, data.tokens.refreshToken);
-      navigate('/');
+      navigate('/dashboard');
     },
   });
 }
@@ -104,7 +104,7 @@ export function useGoogleAuth() {
     },
     onSuccess: (data) => {
       login(data.user, data.tokens.accessToken, data.tokens.refreshToken);
-      navigate('/');
+      navigate('/dashboard');
     },
   });
 }

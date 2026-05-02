@@ -161,10 +161,9 @@ function DesktopNavItems({ isExpanded }: { isExpanded: boolean }) {
         {getNavItems(user?.role).map((item) => {
           const Icon = item.icon;
           const isActive =
-            item.href === '/'
-              ? location.pathname === '/'
+            item.href === '/dashboard'
+              ? location.pathname === '/dashboard'
               : location.pathname.startsWith(item.href);
-
           const navButton = (
             <NavLink to={item.href} className='w-full'>
               <Button
@@ -405,10 +404,9 @@ function MobileBottomNav() {
         {getNavItems(user?.role).map((item) => {
           const Icon = item.icon;
           const isActive =
-            item.href === '/'
-              ? location.pathname === '/'
+            item.href === '/dashboard'
+              ? location.pathname === '/dashboard'
               : location.pathname.startsWith(item.href);
-
           return (
             <NavLink
               key={item.href}
