@@ -29,7 +29,7 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
   updateUserSettings: (userId: number, data: { llmProvider: string | null; llmModel: string | null }) =>
-    request<any>(`/admin/users/${userId}/settings`, {
+    request<AdminUser>(`/admin/users/${userId}/settings`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),

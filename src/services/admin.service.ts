@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, type AdminUser, type GlobalSettings } from '@/api/admin.api';
+import { adminApi} from '@/api/admin.api';
 
 export const adminKeys = {
   users: ['admin', 'users'] as const,

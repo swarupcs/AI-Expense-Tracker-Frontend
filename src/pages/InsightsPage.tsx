@@ -102,12 +102,12 @@ function OverviewTab() {
   const { data: thisYearStats, isLoading: tyLoading } = useExpenseStats(firstDayThisYear, lastDayThisYear);
 
   // Fetch 6-month trend data
-  const { data: statsData, isLoading: statsLoading } = useExpenseStats(sixAgo, monthEnd);
+  const { isLoading: statsLoading } = useExpenseStats(sixAgo, monthEnd);
   const { data: expData, isLoading: expLoading } = useExpenses({ from: sixAgo, to: monthEnd });
   const { data: weekly } = useWeeklySummary();
 
   const isLoading = statsLoading || expLoading || tmLoading || lmLoading || tyLoading;
-  const stats = statsData;
+  // statsData is already used directly via destructuring; no intermediate variable needed
   const expenses = expData?.expenses ?? [];
 
   const monthlyMap: Record<string, number> = {};

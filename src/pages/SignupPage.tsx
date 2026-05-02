@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Loader2, Zap, Check } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Loader2, Check } from 'lucide-react';
 import { useSignUp, useGoogleAuthUrl } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
