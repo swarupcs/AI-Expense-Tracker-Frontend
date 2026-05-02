@@ -37,7 +37,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Period = 'weekly' | 'monthly' | 'yearly';
+type Period = 'weekly' | 'monthly' | 'last_monthly' | 'yearly';
 
 // ─── Period helpers ───────────────────────────────────────────────────────────
 
@@ -74,6 +74,17 @@ function getDateRange(period: Period): {
       to: fmt(dec31),
       label: String(now.getFullYear()),
       monthParam: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
+    };
+  }
+
+  if (period === 'last_monthly') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+    return {
+      from: fmt(firstDay),
+      to: fmt(lastDay),
+      label: firstDay.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+      monthParam: `${firstDay.getFullYear()}-${pad(firstDay.getMonth() + 1)}`,
     };
   }
 
@@ -126,6 +137,7 @@ const PIE_COLORS = [
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: 'weekly', label: 'This Week' },
   { value: 'monthly', label: 'This Month' },
+  { value: 'last_monthly', label: 'Last Month' },
   { value: 'yearly', label: 'This Year' },
 ];
 
@@ -967,7 +979,9 @@ export default function Dashboard() {
                   ? 'this week'
                   : period === 'yearly'
                     ? 'this year'
-                    : 'this month'}
+                    : period === 'last_monthly'
+                      ? 'last month'
+                      : 'this month'}
               </div>
               <p className='text-[#4a4870] text-sm'>
                 Head to AI Chat to add your first expense!
