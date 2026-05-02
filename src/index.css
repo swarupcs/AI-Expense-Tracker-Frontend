@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -108,9 +108,9 @@
 }
 
 @theme inline {
-  --font-sans:    "Outfit", sans-serif;
+  --font-sans:    "Inter", sans-serif;
   --font-mono:    "JetBrains Mono", monospace;
-  --font-display: "Syne", sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
 
   --radius-sm:  calc(var(--radius) - 2px);
   --radius-md:  var(--radius);
@@ -156,8 +156,10 @@
   * { @apply border-border outline-ring/50; box-sizing: border-box; }
   html { color-scheme: dark; scroll-behavior: smooth; }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: "Outfit", sans-serif;
+    @apply bg-background text-foreground antialiased text-[15px] leading-[1.6];
+    font-family: "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background: var(--background);
     /*
       CRITICAL FIX: Do NOT set overflow:hidden on body.
