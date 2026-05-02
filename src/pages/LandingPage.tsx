@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, PieChart, Shield, Zap, MessageSquare } from 'lucide-react';
+import { ArrowRight, Sparkles, PieChart, Shield, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function LandingPage() {
