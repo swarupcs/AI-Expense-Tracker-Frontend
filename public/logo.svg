@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="spendlyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c5cfc" />
+      <stop offset="50%" stop-color="#00d4ff" />
+      <stop offset="100%" stop-color="#00ff87" />
+    </linearGradient>
+  </defs>
+  <path d="M 160 80 C 160 40 96 40 96 80 C 96 120 160 136 160 176 C 160 216 96 216 96 176" fill="none" stroke="url(#spendlyGrad)" stroke-width="32" stroke-linecap="round"/>
+  <path d="M 180 30 L 188 50 L 208 58 L 188 66 L 180 86 L 172 66 L 152 58 L 172 50 Z" fill="#ffb830" />
+  <path d="M 60 170 L 66 186 L 82 192 L 66 198 L 60 214 L 54 198 L 38 192 L 54 186 Z" fill="#ff2d78" />
+</svg>

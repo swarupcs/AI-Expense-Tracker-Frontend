@@ -24,6 +24,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import { useAuthStore } from '@/store/auth.store';
+import AdminPage from '@/pages/AdminPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
@@ -95,6 +96,7 @@ function AppShell() {
               {/* NEW PAGES */}
               <Route path='/finance' element={<FinancePage />} />
               <Route path='/import' element={<ImportPage />} />
+              <Route path='/admin' element={<AdminPage />} />
               <Route path='*' element={<Navigate to='/' replace />} />
             </Routes>
           </div>

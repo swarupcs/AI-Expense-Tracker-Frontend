@@ -68,16 +68,14 @@ export default function SignupPage() {
         {/* Logo */}
         <div className='flex items-center gap-3 mb-8 sm:mb-10 justify-center'>
           <div
-            className='w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center'
+            className='w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0'
             style={{
-              background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-              boxShadow: '0 0 30px rgba(124,92,252,0.5)',
+              background: 'rgba(124,92,252,0.08)',
+              border: '1px solid rgba(124,92,252,0.2)',
+              boxShadow: '0 0 30px rgba(124,92,252,0.15)',
             }}
           >
-            <Zap
-              className='w-5 h-5 sm:w-6 sm:h-6 text-white'
-              strokeWidth={2.5}
-            />
+            <img src="/logo.svg" alt="Spendly Logo" className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div>
             <div className='font-display text-lg sm:text-xl font-extrabold text-[#f0efff] tracking-tight'>

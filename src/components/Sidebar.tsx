@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ShieldAlert,
   // CreditCard,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
@@ -23,17 +24,25 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/chat', label: 'AI Chat', icon: MessageSquare },
-  { href: '/expenses', label: 'Expenses', icon: PieChart },
-  { href: '/budget', label: 'Budgets', icon: Target },
-  // { href: '/recurring', label: 'Recurring', icon: RefreshCw },
-  // { href: '/goals', label: 'Goals', icon: Trophy },
-  { href: '/insights', label: 'Insights', icon: TrendingUp },
-  // { href: '/billing', label: 'Billing', icon: CreditCard },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
+const getNavItems = (role?: string) => {
+  const items = [
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/chat', label: 'AI Chat', icon: MessageSquare },
+    { href: '/expenses', label: 'Expenses', icon: PieChart },
+    { href: '/budget', label: 'Budgets', icon: Target },
+    // { href: '/recurring', label: 'Recurring', icon: RefreshCw },
+    // { href: '/goals', label: 'Goals', icon: Trophy },
+    { href: '/insights', label: 'Insights', icon: TrendingUp },
+    // { href: '/billing', label: 'Billing', icon: CreditCard },
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
+
+  if (role === 'ADMIN') {
+    items.push({ href: '/admin', label: 'Admin Panel', icon: ShieldAlert });
+  }
+
+  return items;
+};
 
 // ─── Desktop-only tooltip ─────────────────────────────────────────────────────
 function SidebarTooltip({
@@ -149,7 +158,7 @@ function DesktopNavItems({ isExpanded }: { isExpanded: boolean }) {
           isExpanded ? 'px-5' : 'items-center',
         )}
       >
-        {navItems.map((item) => {
+        {getNavItems(user?.role).map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === '/'
@@ -354,13 +363,14 @@ function MobileTopBar() {
     >
       <div className='flex items-center gap-2.5'>
         <div
-          className='w-8 h-8 rounded-lg flex items-center justify-center'
+          className='w-8 h-8 rounded-lg flex items-center justify-center shrink-0'
           style={{
-            background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-            boxShadow: '0 0 14px rgba(124,92,252,0.4)',
+            background: 'rgba(124,92,252,0.08)',
+            border: '1px solid rgba(124,92,252,0.2)',
+            boxShadow: '0 0 14px rgba(124,92,252,0.15)',
           }}
         >
-          <Zap className='w-4 h-4 text-white' strokeWidth={2.5} />
+          <img src="/logo.svg" alt="Spendly Logo" className="w-5 h-5" />
         </div>
         <div>
           <span className='font-display text-base font-extrabold text-[--foreground] tracking-tight'>
@@ -379,6 +389,7 @@ function MobileTopBar() {
 function MobileBottomNav() {
   const location = useLocation();
   const { mutate: signOut } = useSignOut();
+  const user = useAuthStore((s) => s.user);
 
   return (
     <nav
@@ -391,7 +402,7 @@ function MobileBottomNav() {
       }}
     >
       <div className='flex items-stretch justify-around'>
-        {navItems.map((item) => {
+        {getNavItems(user?.role).map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === '/'
