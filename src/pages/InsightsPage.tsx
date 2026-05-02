@@ -82,14 +82,31 @@ function TabPill({ label, icon: Icon, active, onClick }: {
 function OverviewTab() {
   const fmt = useFmt();
   const now = new Date();
-  const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  
+  // Date ranges
+  const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const lastDayThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  
+  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+  const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+  
+  const firstDayThisYear = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+  const lastDayThisYear = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
 
+  const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
+  const monthEnd = lastDayThisMonth;
+
+  // Fetch stats for specific periods
+  const { data: thisMonthStats, isLoading: tmLoading } = useExpenseStats(firstDayThisMonth, lastDayThisMonth);
+  const { data: lastMonthStats, isLoading: lmLoading } = useExpenseStats(firstDayLastMonth, lastDayLastMonth);
+  const { data: thisYearStats, isLoading: tyLoading } = useExpenseStats(firstDayThisYear, lastDayThisYear);
+
+  // Fetch 6-month trend data
   const { data: statsData, isLoading: statsLoading } = useExpenseStats(sixAgo, monthEnd);
   const { data: expData, isLoading: expLoading } = useExpenses({ from: sixAgo, to: monthEnd });
   const { data: weekly } = useWeeklySummary();
 
-  const isLoading = statsLoading || expLoading;
+  const isLoading = statsLoading || expLoading || tmLoading || lmLoading || tyLoading;
   const stats = statsData;
   const expenses = expData?.expenses ?? [];
 
@@ -105,7 +122,7 @@ function OverviewTab() {
       amount: Math.round(amount),
     }));
 
-  const pieData = (stats?.byCategory ?? []).map((c, i) => ({
+  const pieData = (thisMonthStats?.byCategory ?? []).map((c, i) => ({
     name: c.category,
     value: Math.round(c.amount),
     color: CATEGORY_COLORS[c.category] ?? COLORS[i % COLORS.length],
@@ -122,15 +139,22 @@ function OverviewTab() {
     },
   };
 
+  const currentDay = Math.max(1, now.getDate());
+  const dailyAvg = (thisMonthStats?.total ?? 0) / currentDay;
+
   return (
     <div className='space-y-4'>
       {/* Summary cards */}
       <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
         {[
-          { label: 'Total Spent', value: fmt(stats?.total ?? 0), color: '#7c5cfc' },
-          { label: 'Transactions', value: String(stats?.count ?? '—'), color: '#00d4ff' },
-          { label: 'Avg / Expense', value: fmt(Math.round(stats?.average ?? 0)), color: '#00ff87' },
-          { label: 'Top Category', value: stats?.byCategory[0]?.category ?? '—', color: '#ffb830' },
+          { label: 'This Month', value: fmt(thisMonthStats?.total ?? 0), color: '#00d4ff' },
+          { label: 'Last Month', value: fmt(lastMonthStats?.total ?? 0), color: '#7c5cfc' },
+          { label: 'This Year', value: fmt(thisYearStats?.total ?? 0), color: '#ffb830' },
+          { label: 'Daily Avg (Mo)', value: fmt(Math.round(dailyAvg)), color: '#00ff87' },
+          { label: 'Transactions (Mo)', value: String(thisMonthStats?.count ?? 0), color: '#9d7fff' },
+          { label: 'Avg / Txn (Mo)', value: fmt(Math.round(thisMonthStats?.average ?? 0)), color: '#ff2d78' },
+          { label: 'Top Category (Mo)', value: thisMonthStats?.byCategory[0]?.category ?? '—', color: '#ffb830' },
+          { label: 'Top Category (Yr)', value: thisYearStats?.byCategory[0]?.category ?? '—', color: '#00d4ff' },
         ].map((card) => (
           <Card
             key={card.label}
@@ -240,7 +264,7 @@ function OverviewTab() {
           <CardHeader className='pb-2 px-4 pt-4'>
             <CardTitle className='flex items-center gap-2 text-[#f0efff] font-display text-sm'>
               <div className='w-0.5 h-4 rounded-sm' style={{ background: 'linear-gradient(180deg, #ff2d78, #ffb830)' }} />
-              By Category
+              This Month By Category
             </CardTitle>
           </CardHeader>
           <CardContent className='px-2 pb-4'>
@@ -274,17 +298,17 @@ function OverviewTab() {
       </div>
 
       {/* Category breakdown */}
-      {stats && stats.byCategory.length > 0 && (
+      {thisMonthStats && thisMonthStats.byCategory.length > 0 && (
         <Card style={{ background: 'rgba(13,13,26,0.8)', border: '1px solid rgba(124,92,252,0.12)' }}>
           <CardHeader className='pb-2 px-4 pt-4'>
             <CardTitle className='flex items-center gap-2 text-[#f0efff] font-display text-sm'>
               <div className='w-0.5 h-4 rounded-sm' style={{ background: 'linear-gradient(180deg, #00ff87, #00d4ff)' }} />
-              Category Breakdown
+              This Month Breakdown
             </CardTitle>
           </CardHeader>
           <CardContent className='px-4 pb-5 space-y-4'>
-            {stats.byCategory.map((cat, i) => {
-              const pct = stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
+            {thisMonthStats.byCategory.map((cat, i) => {
+              const pct = thisMonthStats.total > 0 ? (cat.amount / thisMonthStats.total) * 100 : 0;
               const color = CATEGORY_COLORS[cat.category] ?? COLORS[i % COLORS.length];
               return (
                 <div key={cat.category}>
