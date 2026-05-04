@@ -13,6 +13,30 @@ export interface AdminUser extends PublicUser {
   };
 }
 
+export interface AdminUserDetails extends AdminUser {
+  expenses: Array<{
+    id: number;
+    title: string;
+    amount: number;
+    currency: string;
+    category: string;
+    date: string;
+  }>;
+  chatMessages: Array<{
+    id: number;
+    role: string;
+    content: string;
+    createdAt: string;
+  }>;
+  toolCallLogs: Array<{
+    id: number;
+    toolName: string;
+    success: boolean;
+    durationMs: number | null;
+    createdAt: string;
+  }>;
+}
+
 export interface GlobalSettings {
   id: number;
   llmProvider: string;
@@ -22,6 +46,7 @@ export interface GlobalSettings {
 
 export const adminApi = {
   getUsers: () => request<AdminUser[]>('/admin/users'),
+  getUserDetails: (id: number) => request<AdminUserDetails>(`/admin/users/${id}`),
   getGlobalSettings: () => request<GlobalSettings>('/admin/settings'),
   updateGlobalSettings: (data: { llmProvider: string; llmModel?: string }) =>
     request<GlobalSettings>('/admin/settings', {

@@ -1,10 +1,114 @@
 import { useState } from 'react';
-import { useAdminUsers, useGlobalSettings, useUpdateGlobalSettings, useUpdateUserSettings } from '@/services/admin.service';
+import { useAdminUsers, useAdminUserDetails, useGlobalSettings, useUpdateGlobalSettings, useUpdateUserSettings } from '@/services/admin.service';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ShieldAlert, User, MessageSquare, PieChart, Activity, Settings2, Save } from 'lucide-react';
+import { ShieldAlert, User, MessageSquare, PieChart, Activity, Settings2, Save, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const AVAILABLE_PROVIDERS = ['gemini', 'openai', 'groq', 'vertex', 'custom'];
+
+function UserDetailsDialog({ userId, onClose }: { userId: number | null; onClose: () => void }) {
+  const { data: details, isLoading } = useAdminUserDetails(userId || 0);
+
+  if (!userId) return null;
+
+  return (
+    <Dialog open={!!userId} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-3xl bg-[rgba(13,13,26,0.95)] border-[rgba(124,92,252,0.15)] text-[#f0efff] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle>User Details</DialogTitle>
+          <DialogDescription className="text-[#8b89b0]">
+            {details ? `Viewing details for ${details.name} (${details.email})` : 'Loading...'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading || !details ? (
+          <div className="flex flex-1 items-center justify-center p-8">
+            <Activity className="w-8 h-8 text-[--violet-bright] animate-spin" />
+          </div>
+        ) : (
+          <Tabs defaultValue="expenses" className="flex flex-col flex-1 min-h-0">
+            <TabsList className="grid w-full grid-cols-3 shrink-0 bg-[rgba(124,92,252,0.1)] text-[#8b89b0]">
+              <TabsTrigger value="expenses" className="data-[state=active]:bg-[#7c5cfc] data-[state=active]:text-white">Expenses</TabsTrigger>
+              <TabsTrigger value="chats" className="data-[state=active]:bg-[#7c5cfc] data-[state=active]:text-white">Chat History</TabsTrigger>
+              <TabsTrigger value="ai" className="data-[state=active]:bg-[#7c5cfc] data-[state=active]:text-white">AI / Tool Usage</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="expenses" className="flex-1 overflow-y-auto mt-4 pr-2">
+              {details.expenses.length === 0 ? (
+                <div className="text-center text-[#8b89b0] py-8 text-sm">No expenses found</div>
+              ) : (
+                <div className="space-y-3">
+                  {details.expenses.map(exp => (
+                    <div key={exp.id} className="bg-[rgba(124,92,252,0.05)] border border-[rgba(124,92,252,0.1)] rounded-xl p-3 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-sm">{exp.title}</div>
+                        <div className="text-xs text-[#8b89b0]">{exp.category} • {exp.date}</div>
+                      </div>
+                      <div className="font-mono text-sm text-[#00ff87]">
+                        {exp.currency} {exp.amount.toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="chats" className="flex-1 overflow-y-auto mt-4 pr-2">
+              {details.chatMessages.length === 0 ? (
+                <div className="text-center text-[#8b89b0] py-8 text-sm">No chats found</div>
+              ) : (
+                <div className="space-y-4">
+                  {details.chatMessages.map(chat => (
+                    <div key={chat.id} className={`flex flex-col gap-1 max-w-[85%] ${chat.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
+                      <div className={`px-4 py-2 rounded-2xl text-sm ${chat.role === 'user' ? 'bg-[#7c5cfc] text-white rounded-tr-sm' : 'bg-[rgba(124,92,252,0.1)] border border-[rgba(124,92,252,0.2)] rounded-tl-sm text-[#f0efff]'}`}>
+                        {chat.content}
+                      </div>
+                      <div className="text-[10px] text-[#4a4870] px-1">
+                        {new Date(chat.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="ai" className="flex-1 overflow-y-auto mt-4 pr-2">
+              {details.toolCallLogs.length === 0 ? (
+                <div className="text-center text-[#8b89b0] py-8 text-sm">No AI tool usage found</div>
+              ) : (
+                <div className="space-y-3">
+                  {details.toolCallLogs.map(log => (
+                    <div key={log.id} className="bg-[rgba(124,92,252,0.05)] border border-[rgba(124,92,252,0.1)] rounded-xl p-3 flex flex-col gap-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="font-mono text-[#00d4ff] flex items-center gap-2">
+                          <Activity className="w-3.5 h-3.5" />
+                          {log.toolName}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${log.success ? 'bg-[#00ff87]/20 text-[#00ff87]' : 'bg-[#ff3b5c]/20 text-[#ff3b5c]'}`}>
+                            {log.success ? 'Success' : 'Failed'}
+                          </span>
+                          <span className="text-[10px] text-[#4a4870]">
+                            {log.durationMs ? `${log.durationMs}ms` : ''}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-[#8b89b0]">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function AdminPage() {
   const { data: users, isLoading: usersLoading } = useAdminUsers();
@@ -15,6 +119,7 @@ export default function AdminPage() {
   const [globalProvider, setGlobalProvider] = useState<string>('');
   const [globalModel, setGlobalModel] = useState<string>('');
   const [userEdits, setUserEdits] = useState<Record<number, { llmProvider: string, llmModel: string }>>({});
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   // Sync state when data loads
   if (globalSettings && !globalProvider && !settingsLoading) {
@@ -59,6 +164,8 @@ export default function AdminPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <UserDetailsDialog userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+        
         {/* Global Settings */}
         <Card style={{ background: 'rgba(13,13,26,0.7)', border: '1px solid rgba(124,92,252,0.15)' }}>
           <CardHeader>
@@ -122,7 +229,8 @@ export default function AdminPage() {
                     <th className="px-4 py-3">Role</th>
                     <th className="px-4 py-3">Joined</th>
                     <th className="px-4 py-3 text-center">Usage</th>
-                    <th className="px-4 py-3 rounded-tr-lg w-64">LLM Override</th>
+                    <th className="px-4 py-3 w-64">LLM Override</th>
+                    <th className="px-4 py-3 rounded-tr-lg text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[rgba(124,92,252,0.1)]">
@@ -192,6 +300,17 @@ export default function AdminPage() {
                               </Button>
                             )}
                           </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedUserId(user.id)}
+                            className="text-[#00d4ff] hover:text-[#00ff87] hover:bg-[rgba(0,212,255,0.1)]"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Details
+                          </Button>
                         </td>
                       </tr>
                     );

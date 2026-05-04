@@ -3,6 +3,7 @@ import { adminApi} from '@/api/admin.api';
 
 export const adminKeys = {
   users: ['admin', 'users'] as const,
+  userDetails: (id: number) => ['admin', 'users', id] as const,
   settings: ['admin', 'settings'] as const,
 };
 
@@ -14,6 +15,18 @@ export function useAdminUsers() {
       if (!res.success || !res.data) throw new Error(res.error ?? 'Failed to load users');
       return res.data;
     },
+  });
+}
+
+export function useAdminUserDetails(id: number) {
+  return useQuery({
+    queryKey: adminKeys.userDetails(id),
+    queryFn: async () => {
+      const res = await adminApi.getUserDetails(id);
+      if (!res.success || !res.data) throw new Error(res.error ?? 'Failed to load user details');
+      return res.data;
+    },
+    enabled: !!id,
   });
 }
 
