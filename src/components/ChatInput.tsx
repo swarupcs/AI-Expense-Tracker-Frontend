@@ -57,7 +57,6 @@ export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            disabled={disabled}
             placeholder={
               disabled
                 ? 'AI is thinking…'
@@ -67,7 +66,6 @@ export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
             className='flex-1 resize-none border-none bg-transparent text-[#f0efff] font-sans text-sm sm:text-[15px] leading-relaxed outline-none py-2 min-h-[38px] max-h-[160px]'
             style={{
               fontFamily: '"DM Sans", sans-serif',
-              cursor: disabled ? 'not-allowed' : 'text',
             }}
           />
 
